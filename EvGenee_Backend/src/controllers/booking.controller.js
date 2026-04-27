@@ -173,6 +173,12 @@ const createBooking = async (req, res, next) => {
         date: bookingDate,
       });
 
+      io.to(`user_${userId}`).emit('booking:created', {
+        bookingId: booking._id,
+        stationId,
+        status: 'confirmed',
+      });
+
       
       const updatedBookings = await Booking.countDocuments({
         station: stationId,
@@ -403,6 +409,11 @@ const cancelBooking = async (req, res, next) => {
         startTime: booking.startTime,
         endTime: booking.endTime,
       });
+
+      io.to(`user_${booking.user}`).emit('booking:cancelled', {
+        bookingId: booking._id,
+        status: 'cancelled',
+      });
     }
 
     res.json({
@@ -470,6 +481,11 @@ const checkIn = async (req, res, next) => {
         stationId: booking.station,
         checkedInAt: booking.checkedInAt,
       });
+
+      io.to(`user_${booking.user}`).emit('booking:checkedIn', {
+        bookingId: booking._id,
+        status: 'in-progress',
+      });
     }
 
     res.json({
@@ -524,6 +540,11 @@ const completeBooking = async (req, res, next) => {
         bookingId: booking._id,
         stationId: booking.station,
         completedAt: booking.completedAt,
+      });
+
+      io.to(`user_${booking.user}`).emit('booking:completed', {
+        bookingId: booking._id,
+        status: 'completed',
       });
     }
 

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { AuthAPI, tokenStore, type AuthUser, type Vehicle } from "./api";
+import { socket } from "./socket";
 
 type AuthCtx = {
   user: AuthUser | null;
@@ -42,6 +43,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      if (!socket.connected) {
+        socket.connect();
+      }
+      socket.emit("user:subscribe", user.id);
+    } else {
+      socket.disconnect();
+    }
+    
+    return () => {
+      socket.off("user:subscribe");
+    };
+  }, [user]);
 
   const login: AuthCtx["login"] = async (email, password) => {
     const r = await AuthAPI.login({ email, password });

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { BookingsAPI, StationsAPI, type Station } from "@/lib/api";
+import { socket } from "@/lib/socket";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,6 +58,38 @@ function StationDetail() {
       }
     })();
   }, [station, date, connector, stationId]);
+
+  useEffect(() => {
+    if (!stationId) return;
+
+    socket.emit("station:subscribe", stationId);
+
+    const onStationUpdate = (data: any) => {
+      if (data.stationId === stationId && data.updates) {
+        setStation((prev) => prev ? { ...prev, ...data.updates } : null);
+      }
+    };
+
+    const onAvailabilityUpdate = (data: any) => {
+      if (data.stationId === stationId) {
+        const d = new Date(data.date).toISOString().split('T')[0];
+        if (d === date) {
+          BookingsAPI.availability({ stationId, date, ...(connector ? { connectorType: connector } : {}) })
+            .then(r => setSlots(r.data?.data?.slots ?? []))
+            .catch(console.error);
+        }
+      }
+    };
+
+    socket.on("station:updated", onStationUpdate);
+    socket.on("availability:updated", onAvailabilityUpdate);
+
+    return () => {
+      socket.emit("station:unsubscribe", stationId);
+      socket.off("station:updated", onStationUpdate);
+      socket.off("availability:updated", onAvailabilityUpdate);
+    };
+  }, [stationId, date, connector]);
 
   const submitBooking = async () => {
     if (!selectedSlot || !endTime || !connector) {

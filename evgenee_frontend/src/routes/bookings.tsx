@@ -1,6 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { BookingsAPI, type Booking, type Station } from "@/lib/api";
+import { socket } from "@/lib/socket";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +48,24 @@ function BookingsPage() {
   };
 
   useEffect(() => {
-    if (isAuthed) load();
+    if (isAuthed) {
+      load();
+
+      const reload = () => load();
+      socket.on("booking:created", reload);
+      socket.on("booking:cancelled", reload);
+      socket.on("booking:checkedIn", reload);
+      socket.on("booking:completed", reload);
+      socket.on("bookings:autoCompleted", reload);
+
+      return () => {
+        socket.off("booking:created", reload);
+        socket.off("booking:cancelled", reload);
+        socket.off("booking:checkedIn", reload);
+        socket.off("booking:completed", reload);
+        socket.off("bookings:autoCompleted", reload);
+      };
+    }
   }, [isAuthed]);
 
   if (authLoading) return <div className="h-screen grid place-items-center"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>;

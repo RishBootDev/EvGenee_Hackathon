@@ -5,6 +5,7 @@ import { StationsAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { getApiError } from "@/lib/utils";
@@ -27,6 +28,8 @@ function NewStation() {
     phone: "", email: "",
     amenities: "Restroom, Cafe, WiFi",
     image: "",
+    platformFee: "5",
+    isOpen: true,
   });
   const [connectors, setConnectors] = useState<{ type: string; price: string }[]>([
     { type: "CCS2", price: "18" },
@@ -58,7 +61,9 @@ function NewStation() {
         pricing: connectors.map((c) => ({ connectorType: c.type, priceperKWh: Number(c.price), currency: "INR" })),
         openingHours: form.openingHours,
         contactInfo: { phoneNumber: form.phone, email: form.email },
-        Images: form.image ? [form.image] : [],
+        Images: form.image.split(",").map((s) => s.trim()).filter(Boolean),
+        platformFee: Number(form.platformFee),
+        isOpen: form.isOpen,
       });
       toast.success("Station added!");
       nav({ to: "/owner" });
@@ -85,7 +90,12 @@ function NewStation() {
         <Section title="Basic">
           <Field label="Name"><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
           <Field label="Operator"><Input required value={form.operator} onChange={(e) => setForm({ ...form, operator: e.target.value })} /></Field>
-          <Field label="Image URL"><Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="https://..." /></Field>
+          <Field label="Image URLs (comma separated)"><Input required type="text" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="https://img1.com, https://img2.com" /></Field>
+          
+          <div className="flex items-center justify-between py-2">
+            <Label className="cursor-pointer" onClick={() => setForm({ ...form, isOpen: !form.isOpen })}>Station initially open</Label>
+            <Switch checked={form.isOpen} onCheckedChange={(c) => setForm({ ...form, isOpen: c })} />
+          </div>
         </Section>
 
         <Section title="Location">
@@ -115,6 +125,12 @@ function NewStation() {
         </Section>
 
         <Section title="Connectors & Pricing">
+          <div className="mb-3">
+            <Field label="Platform Fee (%)">
+              <Input type="number" min="0" max="100" required value={form.platformFee} onChange={(e) => setForm({ ...form, platformFee: e.target.value })} />
+            </Field>
+          </div>
+          <Label className="block mb-2">Connectors</Label>
           {connectors.map((c, i) => (
             <div key={i} className="flex gap-2">
               <select
