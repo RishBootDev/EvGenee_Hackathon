@@ -1,0 +1,187 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-glow: var(--primary-glow);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
+:root {
+  --radius: 0.875rem;
+
+  /* Light, EV-fresh palette inspired by reference */
+  --background: oklch(0.99 0.005 150);
+  --foreground: oklch(0.18 0.02 240);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 240);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 240);
+
+  /* Vivid EV green */
+  --primary: oklch(0.68 0.19 148);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-glow: oklch(0.78 0.17 152);
+
+  --secondary: oklch(0.96 0.01 150);
+  --secondary-foreground: oklch(0.22 0.03 240);
+
+  --muted: oklch(0.96 0.005 240);
+  --muted-foreground: oklch(0.5 0.02 240);
+
+  --accent: oklch(0.95 0.04 150);
+  --accent-foreground: oklch(0.25 0.08 150);
+
+  --destructive: oklch(0.62 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --success: oklch(0.68 0.19 148);
+  --success-foreground: oklch(0.99 0 0);
+
+  --warning: oklch(0.78 0.17 75);
+  --warning-foreground: oklch(0.2 0.05 75);
+
+  --border: oklch(0.92 0.008 240);
+  --input: oklch(0.94 0.008 240);
+  --ring: oklch(0.68 0.19 148);
+
+  --chart-1: oklch(0.68 0.19 148);
+  --chart-2: oklch(0.62 0.18 200);
+  --chart-3: oklch(0.7 0.18 60);
+  --chart-4: oklch(0.6 0.2 300);
+  --chart-5: oklch(0.65 0.22 20);
+
+  /* Brand-specific tokens */
+  --pin: oklch(0.62 0.22 20);
+  --gradient-primary: linear-gradient(135deg, var(--primary), var(--primary-glow));
+  --gradient-hero: linear-gradient(180deg, oklch(0.98 0.02 150), oklch(0.93 0.05 150));
+  --shadow-card: 0 8px 30px -12px oklch(0.18 0.02 240 / 0.12);
+  --shadow-elevated: 0 20px 50px -20px oklch(0.18 0.02 240 / 0.25);
+  --shadow-glow: 0 10px 40px -10px oklch(0.68 0.19 148 / 0.5);
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+.dark {
+  --background: oklch(0.16 0.02 240);
+  --foreground: oklch(0.98 0.005 150);
+  --card: oklch(0.22 0.025 240);
+  --card-foreground: oklch(0.98 0.005 150);
+  --popover: oklch(0.22 0.025 240);
+  --popover-foreground: oklch(0.98 0.005 150);
+  --primary: oklch(0.72 0.2 148);
+  --primary-foreground: oklch(0.16 0.02 240);
+  --primary-glow: oklch(0.8 0.17 150);
+  --secondary: oklch(0.28 0.03 240);
+  --secondary-foreground: oklch(0.98 0.005 150);
+  --muted: oklch(0.28 0.03 240);
+  --muted-foreground: oklch(0.72 0.02 240);
+  --accent: oklch(0.32 0.06 150);
+  --accent-foreground: oklch(0.95 0.05 150);
+  --destructive: oklch(0.7 0.2 22);
+  --destructive-foreground: oklch(0.98 0 0);
+  --success: oklch(0.72 0.2 148);
+  --success-foreground: oklch(0.16 0.02 240);
+  --warning: oklch(0.78 0.17 75);
+  --warning-foreground: oklch(0.16 0.02 240);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.72 0.2 148);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html, body {
+    height: 100%;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Leaflet polish */
+.leaflet-container {
+  font-family: inherit;
+  background: var(--color-muted);
+}
+.leaflet-control-attribution {
+  font-size: 10px !important;
+  background: rgba(255,255,255,0.7) !important;
+}
+
+/* Custom EV pin */
+.ev-pin {
+  background: var(--color-primary);
+  width: 36px;
+  height: 36px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid white;
+  box-shadow: var(--shadow-glow);
+}
+.ev-pin svg { transform: rotate(45deg); color: white; }
+.ev-pin.unavail { background: oklch(0.65 0.04 240); box-shadow: 0 4px 14px -4px oklch(0 0 0 / 0.3); }
+.ev-pin.user {
+  background: var(--pin);
+  box-shadow: 0 0 0 8px oklch(0.62 0.22 20 / 0.18), 0 0 0 16px oklch(0.62 0.22 20 / 0.08);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float { animation: float 3s ease-in-out infinite; }
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 oklch(0.68 0.19 148 / 0.5); }
+  70% { box-shadow: 0 0 0 16px oklch(0.68 0.19 148 / 0); }
+  100% { box-shadow: 0 0 0 0 oklch(0.68 0.19 148 / 0); }
+}
+.animate-pulse-ring { animation: pulse-ring 2s infinite; }
