@@ -168,6 +168,14 @@
 }
 .ev-pin svg { transform: rotate(45deg); color: white; }
 .ev-pin.unavail { background: oklch(0.65 0.04 240); box-shadow: 0 4px 14px -4px oklch(0 0 0 / 0.3); }
+.ev-pin.hovered {
+  width: 44px;
+  height: 44px;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 4px white, 0 0 0 7px var(--color-primary), var(--shadow-glow);
+  z-index: 1000;
+}
+.ev-pin.hovered svg { transform: rotate(45deg); }
 .ev-pin.user {
   background: var(--pin);
   box-shadow: 0 0 0 8px oklch(0.62 0.22 20 / 0.18), 0 0 0 16px oklch(0.62 0.22 20 / 0.08);

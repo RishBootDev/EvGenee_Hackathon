@@ -7,14 +7,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 
-const stationIcon = (avail: boolean) =>
+const stationIcon = (avail: boolean, hovered: boolean) =>
   L.divIcon({
     className: "",
-    html: `<div class="ev-pin ${avail ? "" : "unavail"}">${renderToStaticMarkup(
-      <Zap size={18} fill="white" />
+    html: `<div class="ev-pin${avail ? "" : " unavail"}${hovered ? " hovered" : ""}">${renderToStaticMarkup(
+      <Zap size={hovered ? 20 : 17} fill="white" />
     )}</div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
+    iconSize: hovered ? [44, 44] : [36, 36],
+    iconAnchor: hovered ? [22, 44] : [18, 36],
   });
 
 const userIcon = L.divIcon({
@@ -32,35 +32,54 @@ function FlyTo({ center }: { center: [number, number] }) {
   return null;
 }
 
+function StationMarker({
+  station,
+  isHovered,
+  isSelected,
+  onSelect,
+  onHover,
+}: {
+  station: Station;
+  isHovered: boolean;
+  isSelected: boolean;
+  onSelect: (s: Station) => void;
+  onHover: (id: string | null) => void;
+}) {
+  const [lng, lat] = station.location.coordinates;
+  const avail = station.isOpen && station.availablePorts > 0;
+  const active = isHovered || isSelected;
+  const icon = useMemo(() => stationIcon(avail, active), [avail, active]);
+
+  return (
+    <Marker
+      key={station._id}
+      position={[lat, lng]}
+      icon={icon}
+      eventHandlers={{
+        click: () => onSelect(station),
+        mouseover: () => onHover(station._id),
+        mouseout: () => onHover(null),
+      }}
+    />
+  );
+}
+
 export default function StationsMapInner({
   center,
   stations,
   onSelect,
   selectedId,
+  hoveredId,
+  onHover,
 }: {
   center: [number, number];
   stations: Station[];
   onSelect: (s: Station) => void;
   selectedId?: string | null;
+  hoveredId?: string | null;
+  onHover?: (id: string | null) => void;
 }) {
   const mapRef = useRef<L.Map | null>(null);
-
-  const markers = useMemo(
-    () =>
-      stations.map((s) => {
-        const [lng, lat] = s.location.coordinates;
-        const avail = s.isOpen && s.availablePorts > 0;
-        return (
-          <Marker
-            key={s._id}
-            position={[lat, lng]}
-            icon={stationIcon(avail)}
-            eventHandlers={{ click: () => onSelect(s) }}
-          />
-        );
-      }),
-    [stations, onSelect]
-  );
 
   useEffect(() => {
     if (!selectedId || !mapRef.current) return;
@@ -76,9 +95,7 @@ export default function StationsMapInner({
       center={center}
       zoom={13}
       className="h-full w-full"
-      ref={(m) => {
-        mapRef.current = m;
-      }}
+      ref={(m) => { mapRef.current = m; }}
       zoomControl={false}
     >
       <TileLayer
@@ -87,7 +104,16 @@ export default function StationsMapInner({
       />
       <FlyTo center={center} />
       <Marker position={center} icon={userIcon} />
-      {markers}
+      {stations.map((s) => (
+        <StationMarker
+          key={s._id}
+          station={s}
+          isHovered={hoveredId === s._id}
+          isSelected={selectedId === s._id}
+          onSelect={onSelect}
+          onHover={onHover ?? (() => {})}
+        />
+      ))}
     </MapContainer>
   );
 }

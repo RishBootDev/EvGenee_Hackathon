@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Loader2, MapPin, Phone, Star, Zap, Navigation } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Phone, Star, Zap, Navigation, Send } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, getApiError } from "@/lib/utils";
 import { format } from "date-fns";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/stations/$stationId")({
   component: StationDetail,
