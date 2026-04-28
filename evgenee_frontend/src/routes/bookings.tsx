@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Calendar, Clock, Loader2, MapPin, Zap, X, KeyRound, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, Loader2, MapPin, Zap, X, KeyRound, CheckCircle2, Eye, Info } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, getApiError } from "@/lib/utils";
 import { format } from "date-fns";
@@ -34,6 +34,22 @@ function BookingsPage() {
   const [otpFor, setOtpFor] = useState<Booking | null>(null);
   const [otp, setOtp] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Detail modal states
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  const showDetails = async (id: string) => {
+    setLoadingDetail(true);
+    try {
+      const r = await BookingsAPI.details(id);
+      setSelectedBooking(r.data?.data);
+    } catch (e) {
+      toast.error(getApiError(e, "Failed to load details"));
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -172,6 +188,9 @@ function BookingsPage() {
                       <p className="font-bold text-lg">{formatCurrency(b.grandTotal)}</p>
                     </div>
                     <div className="flex gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => showDetails(b._id)} disabled={loadingDetail}>
+                        <Eye className="h-3.5 w-3.5 mr-1" />Details
+                      </Button>
                       {b.status === "confirmed" && (
                         <>
                           <Button size="sm" variant="outline" onClick={() => cancel(b)} disabled={isBusy}>
@@ -195,6 +214,78 @@ function BookingsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Booking Detail Modal */}
+      <Dialog open={!!selectedBooking} onOpenChange={(o) => !o && setSelectedBooking(null)}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Booking Details</DialogTitle>
+          </DialogHeader>
+          {selectedBooking && (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-[image:var(--gradient-primary)] grid place-items-center shrink-0">
+                  <Zap className="h-6 w-6 text-white" fill="white" />
+                </div>
+                <div>
+                  <p className="font-bold">{(selectedBooking.station as Station)?.name}</p>
+                  <p className="text-sm text-muted-foreground">{(selectedBooking.station as Station)?.address?.city}, {(selectedBooking.station as Station)?.address?.street}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 bg-accent/30 p-3 rounded-xl border border-border">
+                <div className="space-y-0.5">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Status</p>
+                  <Badge className={statusColor[selectedBooking.status]}>{selectedBooking.status}</Badge>
+                </div>
+                <div className="space-y-0.5 text-right">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Connector</p>
+                  <p className="font-bold text-sm">{selectedBooking.connectorType}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Date</p>
+                  <p className="font-bold text-sm">{format(new Date(selectedBooking.date), "MMM d, yyyy")}</p>
+                </div>
+                <div className="space-y-0.5 text-right">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Time</p>
+                  <p className="font-bold text-sm">{selectedBooking.startTime} – {selectedBooking.endTime}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-muted-foreground uppercase px-1">Cost Breakdown</p>
+                <div className="bg-card border border-border rounded-xl p-3 space-y-1.5">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Charging ({selectedBooking.estimatedKWh} kWh)</span>
+                    <span>{formatCurrency(selectedBooking.totalCost)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Platform Fee</span>
+                    <span>{formatCurrency(selectedBooking.platformFee)}</span>
+                  </div>
+                  <div className="pt-1.5 border-t border-border flex justify-between font-bold">
+                    <span>Grand Total</span>
+                    <span className="text-primary">{formatCurrency(selectedBooking.grandTotal)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedBooking.status === "confirmed" && (
+                <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-start gap-3">
+                  <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-bold text-primary uppercase">Check-in Info</p>
+                    <p className="text-sm text-primary/80">Use the 6-digit OTP sent to your email to start the session at the station.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button className="w-full bg-[image:var(--gradient-primary)] text-primary-foreground rounded-xl" onClick={() => setSelectedBooking(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!otpFor} onOpenChange={(o) => !o && setOtpFor(null)}>
         <DialogContent>

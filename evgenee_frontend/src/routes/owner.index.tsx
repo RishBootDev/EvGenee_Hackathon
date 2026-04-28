@@ -5,11 +5,14 @@ import { BookingsAPI, StationsAPI, type Booking, type Station } from "@/lib/api"
 import { socket } from "@/lib/socket";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, MapPin, Plus, Power, Zap, TrendingUp, Calendar, IndianRupee } from "lucide-react";
+import { Loader2, MapPin, Plus, Power, Zap, TrendingUp, Calendar, IndianRupee, Edit2, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, getApiError } from "@/lib/utils";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend } from "recharts";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/owner/")({
   component: OwnerPage,
@@ -22,6 +25,49 @@ function OwnerPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Edit station states
+  const [editingStation, setEditingStation] = useState<Station | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    operator: "",
+    chargingSpeed: "",
+    totalPorts: "",
+    availablePorts: "",
+  });
+  const [updating, setUpdating] = useState(false);
+
+  const startEdit = (s: Station) => {
+    setEditingStation(s);
+    setEditForm({
+      name: s.name,
+      operator: s.operator,
+      chargingSpeed: s.chargingSpeed.toString(),
+      totalPorts: s.totalPorts.toString(),
+      availablePorts: s.availablePorts.toString(),
+    });
+  };
+
+  const handleUpdate = async () => {
+    if (!editingStation) return;
+    setUpdating(true);
+    try {
+      await StationsAPI.update(editingStation._id, {
+        name: editForm.name,
+        operator: editForm.operator,
+        chargingSpeed: Number(editForm.chargingSpeed),
+        totalPorts: Number(editForm.totalPorts),
+        availablePorts: Number(editForm.availablePorts),
+      });
+      toast.success("Station updated!");
+      setEditingStation(null);
+      load();
+    } catch (e) {
+      toast.error(getApiError(e, "Update failed"));
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -186,6 +232,9 @@ function OwnerPage() {
                 <p className="text-xs text-muted-foreground truncate">{s.address.city} · {s.availablePorts}/{s.totalPorts} ports · {s.openingHours}</p>
               </div>
               <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => startEdit(s)} className="text-muted-foreground hover:text-primary">
+                  <Edit2 className="h-4 w-4" />
+                </Button>
                 <Switch checked={s.isOpen} disabled={busyId === s._id} onCheckedChange={() => toggle(s)} />
                 <Power className={`h-4 w-4 ${s.isOpen ? "text-success" : "text-muted-foreground"}`} />
               </div>
@@ -193,6 +242,45 @@ function OwnerPage() {
           ))
         )}
       </div>
+
+      {/* Edit Station Modal */}
+      <Dialog open={!!editingStation} onOpenChange={(o) => !o && setEditingStation(null)}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Station</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-1.5">
+              <Label>Station Name</Label>
+              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Operator</Label>
+              <Input value={editForm.operator} onChange={(e) => setEditForm({ ...editForm, operator: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Speed (kW)</Label>
+                <Input type="number" value={editForm.chargingSpeed} onChange={(e) => setEditForm({ ...editForm, chargingSpeed: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Total Ports</Label>
+                <Input type="number" value={editForm.totalPorts} onChange={(e) => setEditForm({ ...editForm, totalPorts: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Available Ports</Label>
+              <Input type="number" value={editForm.availablePorts} onChange={(e) => setEditForm({ ...editForm, availablePorts: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setEditingStation(null)} className="rounded-xl">Cancel</Button>
+            <Button onClick={handleUpdate} disabled={updating} className="bg-[image:var(--gradient-primary)] text-primary-foreground rounded-xl shadow-[var(--shadow-glow)]">
+              {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Recent station bookings */}
       {bookings.length > 0 && (
