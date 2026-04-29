@@ -219,7 +219,7 @@ function HomePage() {
         {/* ── LOCATE BUTTON ── */}
         <button
           onClick={locate}
-          className="absolute right-4 bottom-[38vh] md:bottom-8 z-[500] h-12 w-12 rounded-full bg-white shadow-[0_4px_20px_rgba(0,0,0,0.15)] grid place-items-center hover:scale-105 active:scale-95 transition-all duration-200"
+          className="absolute right-4 bottom-[40vh] md:bottom-8 z-[600] h-12 w-12 rounded-full bg-white shadow-[0_4px_24px_rgba(0,0,0,0.18)] grid place-items-center hover:scale-105 active:scale-95 transition-all duration-200 border border-white/80"
         >
           {locating
             ? <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -227,7 +227,7 @@ function HomePage() {
         </button>
 
         {/* ── STATIONS COUNT CHIP ── */}
-        <div className="absolute left-4 bottom-[38vh] md:bottom-8 z-[500] bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.12)] rounded-full px-4 py-2.5 text-sm font-bold flex items-center gap-2">
+        <div className="absolute left-4 bottom-[40vh] md:bottom-8 z-[600] bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.12)] rounded-full px-4 py-2.5 text-sm font-bold flex items-center gap-2 border border-white/80">
           <Zap className="h-4 w-4 text-primary" fill="currentColor" />
           {loadingStations ? "Searching…" : `${filtered.length} nearby`}
         </div>
