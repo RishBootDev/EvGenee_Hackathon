@@ -21,8 +21,8 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
       },
       manifest: {
-        name: "VoltGo — EV Charging",
-        short_name: "VoltGo",
+        name: "EvGenee",
+        short_name: "EvGenee",
         description: "Find and book EV charging stations near you",
         theme_color: "#22c55e",
         background_color: "#ffffff",
