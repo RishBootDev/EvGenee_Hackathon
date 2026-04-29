@@ -9,12 +9,13 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import {
   Search, Zap, MapPin, Loader2, Navigation, Filter, LocateFixed,
-  Star, Phone, ChevronRight, Plug,
+  Star, Phone, ChevronRight, Plug, X
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { formatCurrency, getApiError } from "@/lib/utils";
 import { toast } from "sonner";
 import { LandingPage } from "@/components/LandingPage";
+import { Drawer } from "vaul";
 
 export const Route = createFileRoute("/")(({
   component: HomePage,
@@ -64,7 +65,7 @@ function HomePage() {
       (pos) => {
         const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setUserLocation(coords);
-        setCenter(coords); // Only move center on explicit user request
+        setCenter(coords); 
         if (typeof window !== "undefined") {
           sessionStorage.setItem("mapCenter", JSON.stringify(coords));
         }
@@ -148,10 +149,10 @@ function HomePage() {
   if (!isAuthed) return <LandingPage />;
 
   return (
-    <div className="fixed inset-0 top-0 bottom-16 sm:bottom-20 flex">
+    <div className="fixed inset-0 top-0 bottom-0 flex overflow-hidden">
       {/* ── MAP SECTION ── */}
-      <div className="flex-1 relative min-w-0">
-        <div className="absolute inset-0">
+      <div className="flex-1 relative min-w-0 h-full">
+        <div className="absolute inset-0 pb-16 sm:pb-20">
           <StationsMap
             center={center}
             stations={filtered}
@@ -164,111 +165,49 @@ function HomePage() {
           />
         </div>
 
-        {/* Top search bar */}
-        <div
-          className="absolute top-0 inset-x-0 z-[500] px-4 pt-3 pointer-events-none"
-          style={{ paddingTop: "calc(var(--safe-top) + 0.75rem)" }}
-        >
-          <div className="max-w-md mx-auto pointer-events-auto">
-            <div className="bg-white rounded-full shadow-[var(--shadow-elevated)] flex items-center gap-2 pl-4 pr-2 py-1.5">
-              <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-              <Input
-                placeholder="Search location or station"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="border-0 shadow-none focus-visible:ring-0 px-0 h-9 text-sm bg-transparent"
-              />
-              <button
-                onClick={() => setConnector(connector ? "" : "Type2")}
-                title="Filter"
-                className={`shrink-0 h-9 w-9 rounded-full grid place-items-center transition ${
-                  connector ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                <Filter className="h-4 w-4" />
-              </button>
-            </div>
-            {connector && (
-              <div className="mt-2 flex gap-2 flex-wrap justify-center">
-                {["CCS2", "CHAdeMO", "Type2", "Type1", "Tesla"].map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setConnector(c === connector ? "" : c)}
-                    className={`text-xs px-3 py-1.5 rounded-full font-medium transition shadow-sm ${
-                      connector === c
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-white text-foreground border border-border"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Locate button */}
         <button
           onClick={locate}
-          className="absolute right-4 bottom-24 z-[500] h-12 w-12 rounded-full bg-white shadow-[var(--shadow-elevated)] grid place-items-center hover:scale-105 transition"
+          className="absolute right-4 bottom-[40vh] z-[500] h-12 w-12 rounded-full bg-white shadow-[var(--shadow-elevated)] grid place-items-center hover:scale-105 transition"
         >
           {locating ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <LocateFixed className="h-5 w-5 text-primary" />}
         </button>
 
         {/* Stations count chip */}
-        <div className="absolute left-4 bottom-24 z-[500] bg-white shadow-[var(--shadow-card)] rounded-full px-4 py-2 text-sm font-semibold flex items-center gap-2">
+        <div className="absolute left-4 bottom-[40vh] z-[500] bg-white shadow-[var(--shadow-card)] rounded-full px-4 py-2 text-sm font-semibold flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary" fill="currentColor" />
           {loadingStations ? "Searching…" : `${filtered.length} nearby`}
         </div>
       </div>
 
-      {/* ── MOBILE DRAWER TRIGGER ── Shown only on small screens */}
-      <div className="md:hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-[500] w-full px-4 max-w-sm pointer-events-none">
-        <Button
-          onClick={() => setSelected(null)} // This could trigger a separate list sheet
-          className="w-full h-12 bg-card/95 backdrop-blur-md text-foreground border border-border rounded-full shadow-[var(--shadow-elevated)] pointer-events-auto flex items-center justify-center gap-2 font-bold"
-        >
-          <Filter className="h-4 w-4" />
-          View Station List
-        </Button>
-      </div>
-
-      {/* ── RIGHT PANEL / MOBILE LIST ── Google Maps-style station sidebar/drawer */}
-      <div className="hidden md:flex w-80 lg:w-96 flex-col bg-card/95 backdrop-blur-sm border-l border-border shadow-[-4px_0_24px_rgba(0,0,0,0.08)] z-[600]">
-        {/* Panel header */}
+      {/* ── DESKTOP SIDEBAR ── */}
+      <div className="hidden md:flex w-80 lg:w-96 flex-col bg-card border-l border-border shadow-[-4px_0_24px_rgba(0,0,0,0.08)] z-[600]">
         <div className="px-4 pt-4 pb-3 border-b border-border flex-shrink-0" style={{ paddingTop: "calc(var(--safe-top) + 1rem)" }}>
+          <div className="bg-white rounded-full border border-border shadow-sm flex items-center gap-2 pl-4 pr-2 py-1.5 mb-4">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Input
+              placeholder="Search stations..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border-0 shadow-none focus-visible:ring-0 px-0 h-9 text-sm bg-transparent"
+            />
+          </div>
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-base text-foreground">Nearby Stations</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {loadingStations ? (
-                  <span className="flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Finding stations…</span>
-                ) : (
-                  `${filtered.length} charging station${filtered.length !== 1 ? "s" : ""} found`
-                )}
-              </p>
-            </div>
-            <div className="h-9 w-9 rounded-xl bg-[image:var(--gradient-primary)] grid place-items-center shadow-[var(--shadow-glow)]">
-              <Zap className="h-4 w-4 text-white" fill="white" />
-            </div>
+            <h2 className="font-bold text-base">Nearby Stations</h2>
+            <Zap className="h-4 w-4 text-primary" fill="currentColor" />
           </div>
         </div>
 
-        {/* Station cards list */}
         <div className="flex-1 overflow-y-auto py-2 px-2 space-y-2">
           {loadingStations ? (
-            <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm">Loading stations…</p>
+              <p className="text-sm text-muted-foreground">Loading stations…</p>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground py-12">
-              <div className="h-16 w-16 rounded-2xl bg-muted grid place-items-center">
-                <Plug className="h-7 w-7 opacity-40" />
-              </div>
+            <div className="text-center py-12 px-4">
+              <Plug className="h-10 w-10 mx-auto opacity-20 mb-2" />
               <p className="font-semibold text-sm">No stations found</p>
-              <p className="text-xs text-center max-w-[200px]">Try zooming out or removing filters to see more stations.</p>
             </div>
           ) : (
             filtered.map((s) => (
@@ -290,41 +229,74 @@ function HomePage() {
         </div>
       </div>
 
+      {/* ── MOBILE DRAWER (VAUL) ── */}
+      <div className="md:hidden">
+        <Drawer.Root 
+          open={true} 
+          dismissible={false} 
+          modal={false} 
+          snapPoints={["70px", "35vh", "85vh"]} 
+          defaultSnapPoint="35vh"
+        >
+          <Drawer.Portal>
+            <Drawer.Content className="bg-card flex flex-col rounded-t-[32px] h-full fixed bottom-0 left-0 right-0 z-[1000] border-t border-border shadow-[0_-8px_30px_rgba(0,0,0,0.08)] outline-none">
+              <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-muted flex-shrink-0" />
+              
+              {/* Search Header - Sticky */}
+              <div className="px-4 pt-2 pb-4 space-y-3 flex-shrink-0 bg-card rounded-t-[32px]">
+                <div className="bg-muted/50 rounded-2xl flex items-center gap-2 pl-4 pr-2 py-1.5 border border-border/50">
+                  <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Input
+                    placeholder="Search location or station"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="border-0 shadow-none focus-visible:ring-0 px-0 h-10 text-base bg-transparent"
+                  />
+                  {search && (
+                    <button onClick={() => setSearch("")} className="p-2 text-muted-foreground">
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center justify-between px-1">
+                   <h3 className="font-bold text-sm">Nearby Stations</h3>
+                   <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-0">{filtered.length} found</Badge>
+                </div>
+              </div>
+
+              {/* Scrollable List */}
+              <div className="flex-1 overflow-y-auto px-4 pb-24 space-y-3">
+                 {filtered.map((s) => (
+                   <StationPanelCard
+                     key={s._id}
+                     station={s}
+                     isHovered={hoveredId === s._id}
+                     isSelected={selected?._id === s._id}
+                     onMouseEnter={() => setHoveredId(s._id)}
+                     onMouseLeave={() => setHoveredId(null)}
+                     onClick={() => setSelected(s)}
+                     cardRef={(el) => {
+                       if (el) cardRefs.current.set(s._id, el);
+                       else cardRefs.current.delete(s._id);
+                     }}
+                   />
+                 ))}
+                 {filtered.length === 0 && !loadingStations && (
+                   <div className="text-center py-10 opacity-50">
+                      <Plug className="h-8 w-8 mx-auto mb-2" />
+                      <p className="text-sm">No stations match your search</p>
+                   </div>
+                 )}
+              </div>
+            </Drawer.Content>
+          </Drawer.Portal>
+        </Drawer.Root>
+      </div>
+
       {/* Station detail sheet (click) */}
       <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <SheetContent side="bottom" className="rounded-t-3xl p-0 max-h-[85vh] z-[1100] border-0 outline-none">
+        <SheetContent side="bottom" className="rounded-t-3xl p-0 max-h-[90vh] z-[1200] border-0 outline-none">
           {selected && <StationDetailSheet station={selected} onClose={() => setSelected(null)} />}
-        </SheetContent>
-      </Sheet>
-
-      {/* Mobile Station List Sheet (can be triggered by the button) */}
-      <Sheet open={!selected && stations.length > 0} modal={false}>
-        <SheetContent
-          side="bottom"
-          className="md:hidden rounded-t-3xl p-0 h-[35vh] sm:h-[40vh] z-[400] border-t border-border shadow-[0_-8px_30px_rgba(0,0,0,0.08)] outline-none overflow-hidden flex flex-col pointer-events-auto"
-        >
-          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-muted flex-shrink-0" />
-          <div className="px-4 py-3 flex items-center justify-between border-b border-border/50">
-             <h3 className="font-bold text-sm">Nearby Stations</h3>
-             <Badge variant="secondary" className="text-[10px]">{filtered.length} found</Badge>
-          </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-2">
-             {filtered.map((s) => (
-               <StationPanelCard
-                 key={s._id}
-                 station={s}
-                 isHovered={hoveredId === s._id}
-                 isSelected={selected?._id === s._id}
-                 onMouseEnter={() => setHoveredId(s._id)}
-                 onMouseLeave={() => setHoveredId(null)}
-                 onClick={() => setSelected(s)}
-                 cardRef={(el) => {
-                   if (el) cardRefs.current.set(s._id, el);
-                   else cardRefs.current.delete(s._id);
-                 }}
-               />
-             ))}
-          </div>
         </SheetContent>
       </Sheet>
     </div>
@@ -366,60 +338,60 @@ function StationPanelCard({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onClick={onClick}
-      className={`group relative rounded-2xl p-3 cursor-pointer transition-all duration-200 border-2 ${
+      className={`group relative rounded-2xl p-3 cursor-pointer transition-all duration-200 border ${
         isSelected
           ? "border-primary bg-primary/5 shadow-[var(--shadow-glow)]"
           : isHovered
           ? "border-primary/50 bg-accent/60 shadow-[var(--shadow-card)]"
-          : "border-transparent bg-card hover:bg-accent/40 hover:border-primary/30 shadow-[var(--shadow-card)]"
+          : "border-border/50 bg-card hover:bg-accent/40 hover:border-primary/30 shadow-sm"
       }`}
     >
       <div className="flex items-start gap-3">
         {/* Icon / image */}
         <div className="relative shrink-0">
-          <div className={`h-14 w-14 rounded-xl overflow-hidden grid place-items-center transition-all duration-200 ${
+          <div className={`h-16 w-16 rounded-2xl overflow-hidden grid place-items-center transition-all duration-200 ${
             isActive
               ? "bg-[image:var(--gradient-primary)] shadow-[var(--shadow-glow)]"
-              : "bg-[image:var(--gradient-primary)] opacity-85"
+              : "bg-muted"
           }`}>
             {station.Images?.[0] ? (
               <img src={station.Images[0]} alt={station.name} className="h-full w-full object-cover" />
             ) : (
-              <Zap className="h-6 w-6 text-white" fill="white" />
+              <Zap className={`h-7 w-7 ${isActive ? "text-white" : "text-primary"}`} fill={isActive ? "white" : "currentColor"} />
             )}
           </div>
           {/* Status dot */}
-          <span className={`absolute -top-1 -right-1 h-4 w-4 rounded-full border-2 border-card text-[8px] font-bold flex items-center justify-center ${
+          <span className={`absolute -top-1 -right-1 h-5 w-5 rounded-full border-2 border-card ${
             avail ? "bg-emerald-500" : station.isOpen ? "bg-amber-400" : "bg-muted-foreground"
           }`} />
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pt-0.5">
           <div className="flex items-start justify-between gap-1">
-            <p className="font-bold text-sm leading-tight truncate">{station.name}</p>
+            <p className="font-bold text-base leading-tight truncate">{station.name}</p>
             <ChevronRight className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isActive ? "translate-x-0.5 text-primary" : ""}`} />
           </div>
-          <p className="text-xs text-muted-foreground truncate mt-0.5 flex items-center gap-0.5">
-            <MapPin className="h-2.5 w-2.5 shrink-0" />
+          <p className="text-xs text-muted-foreground truncate mt-1 flex items-center gap-1">
+            <MapPin className="h-3 w-3 shrink-0" />
             {station.address?.street}, {station.address?.city}
           </p>
 
           {/* Distance + Rating row */}
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
             {station.distanceKm !== undefined && (
-              <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+              <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg">
                 {station.distanceKm < 1
                   ? `${(station.distanceKm * 1000).toFixed(0)} m`
                   : `${station.distanceKm.toFixed(1)} km`}
               </span>
             )}
             {avgRating && (
-              <span className="text-[10px] font-semibold text-amber-600 flex items-center gap-0.5">
-                <Star className="h-2.5 w-2.5 fill-current" />{avgRating}
+              <span className="text-[11px] font-bold text-amber-600 flex items-center gap-1">
+                <Star className="h-3 w-3 fill-current" />{avgRating}
               </span>
             )}
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${
               avail
                 ? "text-emerald-700 bg-emerald-50"
                 : station.isOpen
@@ -429,44 +401,7 @@ function StationPanelCard({
               {avail ? `${station.availablePorts} free` : station.isOpen ? "Full" : "Closed"}
             </span>
           </div>
-
-          {/* Bottom row: connectors + price */}
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex gap-1 flex-wrap">
-              {station.typeOfConnectors.slice(0, 2).map((c) => (
-                <span key={c} className="text-[9px] font-bold bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
-                  {c}
-                </span>
-              ))}
-              {station.typeOfConnectors.length > 2 && (
-                <span className="text-[9px] font-bold bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
-                  +{station.typeOfConnectors.length - 2}
-                </span>
-              )}
-            </div>
-            <span className="text-xs font-bold text-primary">
-              {formatCurrency(minPrice, currency)}<span className="font-normal text-muted-foreground text-[9px]">/kWh</span>
-            </span>
-          </div>
         </div>
-      </div>
-
-      {/* Book button - shown on hover/select */}
-      <div className={`overflow-hidden transition-all duration-200 ${isActive ? "max-h-12 mt-2.5 opacity-100" : "max-h-0 opacity-0"}`}>
-        <Link
-          to="/stations/$stationId"
-          params={{ stationId: station._id }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Button
-            size="sm"
-            disabled={!avail}
-            className="w-full h-8 bg-[image:var(--gradient-primary)] text-primary-foreground font-semibold text-xs rounded-xl shadow-[var(--shadow-glow)] hover:opacity-90"
-          >
-            <Zap className="h-3.5 w-3.5 mr-1" fill="white" />
-            {avail ? "Book Charger" : "Unavailable"}
-          </Button>
-        </Link>
       </div>
     </div>
   );
@@ -492,86 +427,74 @@ function StationDetailSheet({ station, onClose }: { station: Station; onClose: (
   const fmt = (d: Date) => d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 
   return (
-    <div className="overflow-y-auto max-h-[85vh]">
+    <div className="overflow-y-auto max-h-[90vh]">
       <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-muted" />
-      <div className="p-5 space-y-5">
+      <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-4">
           <div className="relative shrink-0">
-            <div className="h-20 w-20 rounded-2xl overflow-hidden bg-[image:var(--gradient-primary)] grid place-items-center shadow-[var(--shadow-glow)]">
+            <div className="h-24 w-24 rounded-[24px] overflow-hidden bg-[image:var(--gradient-primary)] grid place-items-center shadow-[var(--shadow-glow)]">
               {station.Images?.[0] ? (
                 <img src={station.Images[0]} alt={station.name} className="h-full w-full object-cover" />
               ) : (
-                <Zap className="h-9 w-9 text-white" fill="white" />
+                <Zap className="h-10 w-10 text-white" fill="white" />
               )}
-            </div>
-            <div
-              className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
-                avail ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {avail ? "Available" : station.isOpen ? "Full" : "Closed"}
             </div>
           </div>
           <div className="flex-1 min-w-0 pt-1">
-            <h2 className="text-xl font-bold truncate">{station.name}</h2>
-            <p className="text-sm text-muted-foreground truncate">
-              {station.address.street}, {station.address.city}
-            </p>
-            <div className="flex items-center gap-3 mt-1.5">
-              <p className="text-xs text-primary font-semibold flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                {station.distanceKm ? `${(station.distanceKm * 1000).toFixed(0)} m` : "Nearby"}
-              </p>
-              {avgRating && (
-                <p className="text-xs text-amber-600 font-semibold flex items-center gap-1">
-                  <Star className="h-3 w-3 fill-current" />{avgRating} ({station.reviews.length})
-                </p>
+            <div className="flex items-center gap-2 mb-1">
+               <Badge className={avail ? "bg-emerald-500" : "bg-muted text-muted-foreground"}>
+                 {avail ? "Available" : "Busy"}
+               </Badge>
+               {avgRating && (
+                <div className="flex items-center gap-1 text-amber-500 font-bold text-sm">
+                  <Star className="h-4 w-4 fill-current" />{avgRating}
+                </div>
               )}
             </div>
+            <h2 className="text-2xl font-black tracking-tight truncate leading-tight">{station.name}</h2>
+            <p className="text-sm text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              {station.address.street}, {station.address.city}
+            </p>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="border-2 border-destructive/60 rounded-2xl p-3 grid grid-cols-3 gap-1 divide-x divide-destructive/30">
+        <div className="bg-muted/30 border-2 border-border/50 rounded-3xl p-4 grid grid-cols-3 gap-2">
           <PillStat top={connectorLabel} label="Connection" />
           <PillStat top={`${currencySymbol}${minPrice}`} label="Per kWh" />
-          <PillStat top={`${currencySymbol}${parkingFee}`} label="Platform Fee" />
+          <PillStat top={`${currencySymbol}${parkingFee}`} label="Platform" />
         </div>
 
         {/* Arrive / Depart */}
-        <div className="grid grid-cols-2 gap-3">
-          <TimeBox label="Arrive" value={`Today ${fmt(now)}`} />
-          <TimeBox label="Depart" value={`Today ${fmt(later)}`} />
+        <div className="grid grid-cols-2 gap-4">
+          <TimeBox label="Start Time" value={`${fmt(now)}`} />
+          <TimeBox label="End Time" value={`${fmt(later)}`} />
         </div>
 
-        {station.amenities?.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
-            {station.amenities.slice(0, 4).map((a) => (
-              <span key={a} className="text-[11px] bg-accent text-accent-foreground px-2.5 py-1 rounded-full font-medium">
-                {a}
-              </span>
-            ))}
-          </div>
-        )}
-
         {/* Actions */}
-        <div className="space-y-2">
+        <div className="space-y-3 pt-2">
           <Link to="/stations/$stationId" params={{ stationId: station._id }} onClick={onClose}>
             <Button
-              className="w-full h-13 py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base tracking-wider rounded-full shadow-[var(--shadow-glow)]"
-              disabled={!avail}
+              className="w-full h-14 bg-[image:var(--gradient-primary)] hover:opacity-90 text-primary-foreground font-black text-lg rounded-2xl shadow-[var(--shadow-glow)]"
+              disabled={!station.isOpen}
             >
-              BOOK CHARGER
+              BOOK NOW
             </Button>
           </Link>
-          <Button
-            variant="ghost"
-            className="w-full text-muted-foreground"
-            onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank")}
-          >
-            <Navigation className="h-4 w-4 mr-1" /> Get Directions
-          </Button>
+          <div className="grid grid-cols-2 gap-3">
+             <Button
+                variant="outline"
+                className="h-12 rounded-xl font-bold"
+                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank")}
+              >
+                <Navigation className="h-4 w-4 mr-2" /> Directions
+              </Button>
+              <Button variant="outline" className="h-12 rounded-xl font-bold" onClick={onClose}>
+                Close
+              </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -581,17 +504,17 @@ function StationDetailSheet({ station, onClose }: { station: Station; onClose: (
 function PillStat({ top, label }: { top: string; label: string }) {
   return (
     <div className="text-center px-1">
-      <p className="text-sm font-bold text-destructive truncate">{top}</p>
-      <p className="text-[10px] text-muted-foreground font-medium mt-0.5">{label}</p>
+      <p className="text-base font-black text-primary truncate leading-tight">{top}</p>
+      <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">{label}</p>
     </div>
   );
 }
 
 function TimeBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-border rounded-xl px-3 py-2.5">
-      <p className="text-[11px] font-bold text-foreground">{label}</p>
-      <p className="text-xs text-muted-foreground mt-0.5">{value}</p>
+    <div className="bg-card border border-border rounded-2xl p-4 flex flex-col items-center">
+      <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">{label}</p>
+      <p className="text-lg font-black text-foreground mt-1">{value}</p>
     </div>
   );
 }
