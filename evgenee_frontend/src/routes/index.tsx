@@ -35,15 +35,26 @@ function HomePage() {
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const locate = useCallback(() => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser.");
+      return;
+    }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCenter([pos.coords.latitude, pos.coords.longitude]);
         setLocating(false);
       },
-      () => {
-        toast.error("Couldn't get your location. Showing default area.");
+      (error) => {
+        let msg = "Couldn't get your location. Showing default area.";
+        if (error.code === error.PERMISSION_DENIED) {
+           msg = "Location permission denied. Please enable it in your browser settings.";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+           msg = "Location information is unavailable.";
+        } else if (error.code === error.TIMEOUT) {
+           msg = "The request to get user location timed out.";
+        }
+        toast.error(msg);
         setLocating(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
