@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import type { Station } from "@/lib/api";
 import { Zap } from "lucide-react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -27,8 +27,23 @@ const userIcon = L.divIcon({
 function FlyTo({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
-    map.flyTo(center, 13, { duration: 0.8 });
+    const current = map.getCenter();
+    const target = L.latLng(center[0], center[1]);
+    // Only fly if the distance is greater than 10 meters to avoid feedback loop
+    if (current.distanceTo(target) > 10) {
+      map.flyTo(center, 13, { duration: 0.8 });
+    }
   }, [center, map]);
+  return null;
+}
+
+function MapEvents({ onCenterChange }: { onCenterChange: (center: [number, number]) => void }) {
+  useMapEvents({
+    moveend: (e) => {
+      const c = e.target.getCenter();
+      onCenterChange([c.lat, c.lng]);
+    },
+  });
   return null;
 }
 
@@ -71,6 +86,7 @@ export default function StationsMapInner({
   selectedId,
   hoveredId,
   onHover,
+  onCenterChange,
 }: {
   center: [number, number];
   stations: Station[];
@@ -78,6 +94,7 @@ export default function StationsMapInner({
   selectedId?: string | null;
   hoveredId?: string | null;
   onHover?: (id: string | null) => void;
+  onCenterChange?: (center: [number, number]) => void;
 }) {
   const mapRef = useRef<L.Map | null>(null);
 
@@ -103,6 +120,7 @@ export default function StationsMapInner({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <FlyTo center={center} />
+      {onCenterChange && <MapEvents onCenterChange={onCenterChange} />}
       <Marker position={center} icon={userIcon} />
       {stations.map((s) => (
         <StationMarker
