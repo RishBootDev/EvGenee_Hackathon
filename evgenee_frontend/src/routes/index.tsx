@@ -166,6 +166,33 @@ function HomePage() {
           />
         </div>
 
+        {/* ── FLOATING SEARCH BAR ── */}
+        <div
+          className="absolute top-0 left-0 right-0 z-[500] px-4"
+          style={{ paddingTop: "calc(var(--safe-top) + 0.75rem)" }}
+        >
+          <div className="max-w-xl mx-auto md:mx-0 bg-white/95 backdrop-blur-md rounded-2xl border border-border shadow-[var(--shadow-elevated)] flex items-center gap-2 pl-4 pr-2 py-2 transition-all duration-300">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Input
+              placeholder="Search stations or area…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => setActiveSnapPoint("70px")}
+              onBlur={() => setActiveSnapPoint("35vh")}
+              className="border-0 shadow-none focus-visible:ring-0 px-0 h-9 text-sm bg-transparent"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="p-1.5 rounded-xl text-muted-foreground hover:bg-muted transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+            {loadingStations && <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />}
+          </div>
+        </div>
+
         {/* Locate button */}
         <button
           onClick={locate}
@@ -183,19 +210,12 @@ function HomePage() {
 
       {/* ── DESKTOP SIDEBAR ── */}
       <div className="hidden md:flex w-80 lg:w-96 flex-col bg-card border-l border-border shadow-[-4px_0_24px_rgba(0,0,0,0.08)] z-[600]">
-        <div className="px-4 pt-4 pb-3 border-b border-border flex-shrink-0" style={{ paddingTop: "calc(var(--safe-top) + 1rem)" }}>
-          <div className="bg-white rounded-full border border-border shadow-sm flex items-center gap-2 pl-4 pr-2 py-1.5 mb-4">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-            <Input
-              placeholder="Search stations..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="border-0 shadow-none focus-visible:ring-0 px-0 h-9 text-sm bg-transparent"
-            />
-          </div>
+        <div className="px-4 pb-3 border-b border-border flex-shrink-0" style={{ paddingTop: "calc(var(--safe-top) + 4.5rem)" }}>
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-base">Nearby Stations</h2>
-            <Zap className="h-4 w-4 text-primary" fill="currentColor" />
+            <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-0">
+              {filtered.length} found
+            </Badge>
           </div>
         </div>
 
@@ -244,28 +264,10 @@ function HomePage() {
             <Drawer.Content className="bg-card flex flex-col rounded-t-[32px] h-full fixed bottom-0 left-0 right-0 z-[1000] border-t border-border shadow-[0_-8px_30px_rgba(0,0,0,0.08)] outline-none">
               <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-muted flex-shrink-0" />
               
-              {/* Search Header - Sticky */}
-              <div className="px-4 pt-2 pb-4 space-y-3 flex-shrink-0 bg-card rounded-t-[32px]">
-                <div className="bg-muted/50 rounded-2xl flex items-center gap-2 pl-4 pr-2 py-1.5 border border-border/50">
-                  <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <Input
-                    placeholder="Search location or station"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onFocus={() => setActiveSnapPoint("85vh")}
-                    onBlur={() => !search && setActiveSnapPoint("35vh")}
-                    className="border-0 shadow-none focus-visible:ring-0 px-0 h-10 text-base bg-transparent"
-                  />
-                  {search && (
-                    <button onClick={() => setSearch("")} className="p-2 text-muted-foreground">
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center justify-between px-1">
-                   <h3 className="font-bold text-sm">Nearby Stations</h3>
-                   <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-0">{filtered.length} found</Badge>
-                </div>
+              {/* Drawer Title Row */}
+              <div className="px-4 pt-2 pb-3 flex-shrink-0 flex items-center justify-between">
+                <h3 className="font-bold text-sm">Nearby Stations</h3>
+                <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-0">{filtered.length} found</Badge>
               </div>
 
               {/* Scrollable List */}
