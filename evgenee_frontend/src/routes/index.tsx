@@ -50,6 +50,7 @@ function HomePage() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [connector, setConnector] = useState<string>("");
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -63,6 +64,7 @@ function HomePage() {
       (pos) => {
         const newCenter: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setCenter(newCenter);
+        setUserLocation(newCenter);
         if (typeof window !== "undefined") {
           sessionStorage.setItem("mapCenter", JSON.stringify(newCenter));
         }
@@ -158,6 +160,7 @@ function HomePage() {
             hoveredId={hoveredId}
             onHover={handleMapHover}
             onCenterChange={handleMapMove}
+            userLocation={userLocation}
           />
         </div>
 

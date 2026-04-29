@@ -87,6 +87,7 @@ export default function StationsMapInner({
   hoveredId,
   onHover,
   onCenterChange,
+  userLocation,
 }: {
   center: [number, number];
   stations: Station[];
@@ -95,6 +96,7 @@ export default function StationsMapInner({
   hoveredId?: string | null;
   onHover?: (id: string | null) => void;
   onCenterChange?: (center: [number, number]) => void;
+  userLocation?: [number, number] | null;
 }) {
   const mapRef = useRef<L.Map | null>(null);
 
@@ -121,7 +123,7 @@ export default function StationsMapInner({
       />
       <FlyTo center={center} />
       {onCenterChange && <MapEvents onCenterChange={onCenterChange} />}
-      <Marker position={center} icon={userIcon} />
+      {userLocation && <Marker position={userLocation} icon={userIcon} />}
       {stations.map((s) => (
         <StationMarker
           key={s._id}

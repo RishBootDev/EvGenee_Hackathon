@@ -12,6 +12,7 @@ export function StationsMap(props: {
   hoveredId?: string | null;
   onHover?: (id: string | null) => void;
   onCenterChange?: (center: [number, number]) => void;
+  userLocation?: [number, number] | null;
 }) {
   if (typeof window === "undefined") {
     return <div className="h-full w-full bg-muted" />;
