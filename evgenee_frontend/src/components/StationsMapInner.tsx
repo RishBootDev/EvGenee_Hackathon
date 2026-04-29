@@ -1,20 +1,21 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import type { Station } from "@/lib/api";
-import { Zap } from "lucide-react";
+import { Zap, Star, Navigation } from "lucide-react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { Link } from "@tanstack/react-router";
 
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 
-const stationIcon = (avail: boolean, hovered: boolean) =>
+const stationIcon = (avail: boolean, active: boolean) =>
   L.divIcon({
     className: "",
-    html: `<div class="ev-pin${avail ? "" : " unavail"}${hovered ? " hovered" : ""}">${renderToStaticMarkup(
-      <Zap size={hovered ? 20 : 17} fill="white" />
+    html: `<div class="ev-pin${avail ? "" : " unavail"}${active ? " hovered" : ""}">${renderToStaticMarkup(
+      <Zap size={active ? 20 : 17} fill="white" />
     )}</div>`,
-    iconSize: hovered ? [44, 44] : [36, 36],
-    iconAnchor: hovered ? [22, 44] : [18, 36],
+    iconSize: active ? [44, 44] : [36, 36],
+    iconAnchor: active ? [22, 44] : [18, 36],
   });
 
 const userIcon = L.divIcon({
@@ -29,7 +30,6 @@ function FlyTo({ center }: { center: [number, number] }) {
   useEffect(() => {
     const current = map.getCenter();
     const target = L.latLng(center[0], center[1]);
-    // Only fly if the distance is greater than 10 meters to avoid feedback loop
     if (current.distanceTo(target) > 10) {
       map.flyTo(center, 13, { duration: 0.8 });
     }
@@ -47,35 +47,199 @@ function MapEvents({ onCenterChange }: { onCenterChange: (center: [number, numbe
   return null;
 }
 
+function StationPopupCard({ station }: { station: Station }) {
+  const [lng, lat] = station.location.coordinates;
+  const avail = station.isOpen && station.availablePorts > 0;
+  const minPrice = station.pricing?.length
+    ? Math.min(...station.pricing.map((p) => p.priceperKWh))
+    : 0;
+  const currency = station.pricing?.[0]?.currency ?? "INR";
+  const sym = currency === "INR" ? "₹" : "$";
+  const avgRating = station.reviews?.length
+    ? (station.reviews.reduce((s, r) => s + r.rating, 0) / station.reviews.length).toFixed(1)
+    : null;
+
+  return (
+    <div style={{ width: 260, fontFamily: "inherit" }}>
+      {/* Header */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, oklch(0.68 0.19 148), oklch(0.78 0.17 152))",
+          padding: "12px",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+        }}
+      >
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            background: "rgba(255,255,255,0.2)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
+            flexShrink: 0,
+          }}
+        >
+          {station.Images?.[0] ? (
+            <img src={station.Images[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <Zap size={18} color="white" fill="white" />
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontWeight: 800, color: "white", fontSize: 13, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {station.name}
+          </p>
+          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {station.address?.city}
+          </p>
+        </div>
+        <span
+          style={{
+            background: avail ? "#10b981" : "rgba(255,255,255,0.25)",
+            color: "white",
+            borderRadius: 20,
+            padding: "2px 8px",
+            fontSize: 10,
+            fontWeight: 700,
+            flexShrink: 0,
+          }}
+        >
+          {avail ? `${station.availablePorts} free` : station.isOpen ? "Full" : "Closed"}
+        </span>
+      </div>
+
+      {/* Stats row */}
+      <div style={{ display: "flex", borderBottom: "1px solid #f1f5f9" }}>
+        <div style={{ flex: 1, padding: "8px 4px", textAlign: "center", borderRight: "1px solid #f1f5f9" }}>
+          <p style={{ fontWeight: 800, color: "oklch(0.68 0.19 148)", fontSize: 14, margin: 0 }}>
+            {sym}{minPrice}
+          </p>
+          <p style={{ color: "#94a3b8", fontSize: 10, margin: 0 }}>per kWh</p>
+        </div>
+        {avgRating && (
+          <div style={{ flex: 1, padding: "8px 4px", textAlign: "center", borderRight: "1px solid #f1f5f9", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <p style={{ fontWeight: 800, color: "#f59e0b", fontSize: 14, margin: 0, display: "flex", alignItems: "center", gap: 2 }}>
+              <Star size={11} fill="#f59e0b" color="#f59e0b" /> {avgRating}
+            </p>
+            <p style={{ color: "#94a3b8", fontSize: 10, margin: 0 }}>rating</p>
+          </div>
+        )}
+        {station.distanceKm !== undefined && (
+          <div style={{ flex: 1, padding: "8px 4px", textAlign: "center" }}>
+            <p style={{ fontWeight: 800, color: "#1e293b", fontSize: 14, margin: 0 }}>
+              {station.distanceKm < 1
+                ? `${(station.distanceKm * 1000).toFixed(0)}m`
+                : `${station.distanceKm.toFixed(1)}km`}
+            </p>
+            <p style={{ color: "#94a3b8", fontSize: 10, margin: 0 }}>away</p>
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div style={{ padding: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <Link
+          to="/stations/$stationId"
+          params={{ stationId: station._id }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: 36,
+            background: "linear-gradient(135deg, oklch(0.68 0.19 148), oklch(0.78 0.17 152))",
+            color: "white",
+            borderRadius: 10,
+            fontWeight: 800,
+            fontSize: 12,
+            textDecoration: "none",
+            opacity: station.isOpen ? 1 : 0.5,
+            pointerEvents: station.isOpen ? "auto" : "none",
+          }}
+        >
+          Book Now
+        </Link>
+        <button
+          onClick={() =>
+            window.open(
+              `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+              "_blank"
+            )
+          }
+          style={{
+            height: 36,
+            border: "1.5px solid #e2e8f0",
+            borderRadius: 10,
+            background: "white",
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#475569",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+          }}
+        >
+          <Navigation size={12} /> Directions
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function StationMarker({
   station,
-  isHovered,
   isSelected,
   onSelect,
-  onHover,
 }: {
   station: Station;
-  isHovered: boolean;
   isSelected: boolean;
   onSelect: (s: Station) => void;
-  onHover: (id: string | null) => void;
 }) {
   const [lng, lat] = station.location.coordinates;
   const avail = station.isOpen && station.availablePorts > 0;
-  const active = isHovered || isSelected;
+  const markerRef = useRef<L.Marker | null>(null);
+  const [localHover, setLocalHover] = useState(false);
+  const active = localHover || isSelected;
   const icon = useMemo(() => stationIcon(avail, active), [avail, active]);
+
+  // Open popup when externally selected (e.g., from search dropdown)
+  useEffect(() => {
+    if (isSelected && markerRef.current) {
+      markerRef.current.openPopup();
+    }
+  }, [isSelected]);
 
   return (
     <Marker
-      key={station._id}
+      ref={(m) => { markerRef.current = m; }}
       position={[lat, lng]}
       icon={icon}
       eventHandlers={{
+        mouseover: () => {
+          setLocalHover(true);
+          markerRef.current?.openPopup();
+        },
+        mouseout: () => setLocalHover(false),
         click: () => onSelect(station),
-        mouseover: () => onHover(station._id),
-        mouseout: () => onHover(null),
       }}
-    />
+    >
+      <Popup
+        className="ev-station-popup"
+        closeButton={false}
+        autoPan
+        keepInView
+        minWidth={260}
+        maxWidth={260}
+      >
+        <StationPopupCard station={station} />
+      </Popup>
+    </Marker>
   );
 }
 
@@ -84,8 +248,6 @@ export default function StationsMapInner({
   stations,
   onSelect,
   selectedId,
-  hoveredId,
-  onHover,
   onCenterChange,
   userLocation,
 }: {
@@ -93,8 +255,6 @@ export default function StationsMapInner({
   stations: Station[];
   onSelect: (s: Station) => void;
   selectedId?: string | null;
-  hoveredId?: string | null;
-  onHover?: (id: string | null) => void;
   onCenterChange?: (center: [number, number]) => void;
   userLocation?: [number, number] | null;
 }) {
@@ -128,10 +288,8 @@ export default function StationsMapInner({
         <StationMarker
           key={s._id}
           station={s}
-          isHovered={hoveredId === s._id}
           isSelected={selectedId === s._id}
           onSelect={onSelect}
-          onHover={onHover ?? (() => {})}
         />
       ))}
     </MapContainer>

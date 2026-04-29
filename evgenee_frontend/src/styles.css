@@ -193,3 +193,36 @@
   100% { box-shadow: 0 0 0 0 oklch(0.68 0.19 148 / 0); }
 }
 .animate-pulse-ring { animation: pulse-ring 2s infinite; }
+
+/* ── Custom Station Popup (overrides Leaflet defaults) ── */
+.ev-station-popup .leaflet-popup-content-wrapper {
+  background: white !important;
+  border: none !important;
+  box-shadow: 0 12px 48px -8px rgba(0,0,0,0.22) !important;
+  padding: 0 !important;
+  border-radius: 20px !important;
+  overflow: hidden !important;
+}
+.ev-station-popup .leaflet-popup-tip-container {
+  display: none !important;
+}
+.ev-station-popup .leaflet-popup-content {
+  margin: 0 !important;
+  width: auto !important;
+  line-height: normal !important;
+}
+.ev-station-popup {
+  margin-bottom: 16px !important;
+}
+
+/* ── Smooth transitions for the vaul drawer ── */
+[data-vaul-drawer] {
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1) !important;
+}
+
+/* ── Mobile safe area padding ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

@@ -9,8 +9,6 @@ export function StationsMap(props: {
   stations: Station[];
   onSelect: (s: Station) => void;
   selectedId?: string | null;
-  hoveredId?: string | null;
-  onHover?: (id: string | null) => void;
   onCenterChange?: (center: [number, number]) => void;
   userLocation?: [number, number] | null;
 }) {

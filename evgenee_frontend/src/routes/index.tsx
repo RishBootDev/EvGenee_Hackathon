@@ -3,23 +3,19 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { StationsAPI, type Station } from "@/lib/api";
 import { StationsMap } from "@/components/StationsMap";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import {
-  Search, Zap, MapPin, Loader2, Navigation, Filter, LocateFixed,
-  Star, Phone, ChevronRight, Plug, X
+  Search, Zap, Loader2, LocateFixed, Plug, X, ChevronRight, MapPin,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
-import { formatCurrency, getApiError } from "@/lib/utils";
+import { getApiError } from "@/lib/utils";
 import { toast } from "sonner";
 import { LandingPage } from "@/components/LandingPage";
 import { Drawer } from "vaul";
 
-export const Route = createFileRoute("/")(({
+export const Route = createFileRoute("/")({
   component: HomePage,
-}));
+});
 
 const DEFAULT_CENTER: [number, number] = [28.6139, 77.209];
 
@@ -29,11 +25,7 @@ function HomePage() {
     if (typeof window !== "undefined") {
       const saved = sessionStorage.getItem("mapCenter");
       if (saved) {
-        try {
-          return JSON.parse(saved) as [number, number];
-        } catch (e) {
-          // ignore parse error
-        }
+        try { return JSON.parse(saved) as [number, number]; } catch {}
       }
     }
     return DEFAULT_CENTER;
@@ -45,42 +37,31 @@ function HomePage() {
       sessionStorage.setItem("mapCenter", JSON.stringify(newCenter));
     }
   }, []);
+
   const [stations, setStations] = useState<Station[]>([]);
   const [loadingStations, setLoadingStations] = useState(false);
   const [selected, setSelected] = useState<Station | null>(null);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [connector, setConnector] = useState<string>("");
+  const [showDropdown, setShowDropdown] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
   const [activeSnapPoint, setActiveSnapPoint] = useState<string | number | null>("35vh");
-  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const locate = useCallback(() => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser.");
-      return;
-    }
+    if (!navigator.geolocation) { toast.error("Geolocation not supported."); return; }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setUserLocation(coords);
-        setCenter(coords); 
-        if (typeof window !== "undefined") {
-          sessionStorage.setItem("mapCenter", JSON.stringify(coords));
-        }
+        setCenter(coords);
+        if (typeof window !== "undefined") sessionStorage.setItem("mapCenter", JSON.stringify(coords));
         setLocating(false);
       },
-      (error) => {
-        let msg = "Couldn't get your location. Showing default area.";
-        if (error.code === error.PERMISSION_DENIED) {
-           msg = "Location permission denied. Please enable it in your browser settings.";
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-           msg = "Location information is unavailable.";
-        } else if (error.code === error.TIMEOUT) {
-           msg = "The request to get user location timed out.";
-        }
+      (err) => {
+        let msg = "Couldn't get your location.";
+        if (err.code === err.PERMISSION_DENIED) msg = "Location permission denied.";
         toast.error(msg);
         setLocating(false);
       },
@@ -89,9 +70,7 @@ function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (isAuthed && typeof window !== "undefined" && !sessionStorage.getItem("mapCenter")) {
-      locate();
-    }
+    if (isAuthed && typeof window !== "undefined" && !sessionStorage.getItem("mapCenter")) locate();
   }, [isAuthed, locate]);
 
   useEffect(() => {
@@ -100,12 +79,7 @@ function HomePage() {
     (async () => {
       setLoadingStations(true);
       try {
-        const r = await StationsAPI.nearby({
-          lat: center[0],
-          lng: center[1],
-          maxDistance: 50000,
-          ...(connector ? { connectorType: connector } : {}),
-        });
+        const r = await StationsAPI.nearby({ lat: center[0], lng: center[1], maxDistance: 50000 });
         if (!cancel) setStations(r.data?.data ?? []);
       } catch (e) {
         if (!cancel) toast.error(getApiError(e, "Failed to load nearby stations"));
@@ -114,7 +88,7 @@ function HomePage() {
       }
     })();
     return () => { cancel = true; };
-  }, [center, connector, isAuthed]);
+  }, [center, isAuthed]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -127,17 +101,15 @@ function HomePage() {
     );
   }, [stations, search]);
 
-  // When map pin is hovered → scroll corresponding card into view
+  // Close dropdown on outside click
   useEffect(() => {
-    if (!hoveredId) return;
-    const el = cardRefs.current.get(hoveredId);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [hoveredId]);
-
-  const handleMapHover = useCallback((id: string | null) => {
-    setHoveredId(id);
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   if (loading) {
@@ -150,17 +122,15 @@ function HomePage() {
   if (!isAuthed) return <LandingPage />;
 
   return (
-    <div className="fixed inset-0 top-0 bottom-0 flex overflow-hidden">
-      {/* ── MAP SECTION ── */}
+    <div className="fixed inset-0 flex overflow-hidden">
+      {/* ── FULL-SCREEN MAP ── */}
       <div className="flex-1 relative min-w-0 h-full">
-        <div className="absolute inset-0 pb-16 sm:pb-20">
+        <div className="absolute inset-0">
           <StationsMap
             center={center}
             stations={filtered}
-            onSelect={(s) => setSelected(s)}
+            onSelect={(s) => { setSelected(s); setShowDropdown(false); }}
             selectedId={selected?._id}
-            hoveredId={hoveredId}
-            onHover={handleMapHover}
             onCenterChange={handleMapMove}
             userLocation={userLocation}
           />
@@ -168,359 +138,203 @@ function HomePage() {
 
         {/* ── FLOATING SEARCH BAR ── */}
         <div
-          className="absolute top-0 left-0 right-0 z-[500] px-4"
+          ref={searchRef}
+          className="absolute top-0 left-0 right-0 z-[600] px-3 sm:px-4"
           style={{ paddingTop: "calc(var(--safe-top) + 0.75rem)" }}
         >
-          <div className="max-w-xl mx-auto md:mx-0 bg-white/95 backdrop-blur-md rounded-2xl border border-border shadow-[var(--shadow-elevated)] flex items-center gap-2 pl-4 pr-2 py-2 transition-all duration-300">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-            <Input
-              placeholder="Search stations or area…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onFocus={() => setActiveSnapPoint("70px")}
-              onBlur={() => setActiveSnapPoint("35vh")}
-              className="border-0 shadow-none focus-visible:ring-0 px-0 h-9 text-sm bg-transparent"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="p-1.5 rounded-xl text-muted-foreground hover:bg-muted transition"
-              >
-                <X className="h-4 w-4" />
-              </button>
+          {/* Input pill */}
+          <div className="max-w-lg mx-auto">
+            <div className="bg-white/95 backdrop-blur-lg rounded-2xl border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.18)] flex items-center gap-2 pl-4 pr-2 py-2.5 transition-all duration-200">
+              <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Input
+                placeholder="Search charging stations…"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); }}
+                onFocus={() => { setShowDropdown(true); setActiveSnapPoint("70px"); }}
+                onBlur={() => setActiveSnapPoint("35vh")}
+                className="border-0 shadow-none focus-visible:ring-0 px-0 h-9 text-sm bg-transparent"
+              />
+              {search && (
+                <button
+                  onClick={() => { setSearch(""); setShowDropdown(false); }}
+                  className="p-1.5 rounded-xl text-muted-foreground hover:bg-muted transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              {loadingStations && <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />}
+            </div>
+
+            {/* ── SEARCH DROPDOWN ── */}
+            {showDropdown && search.trim() && (
+              <div className="mt-2 bg-white/98 backdrop-blur-xl rounded-2xl border border-white/60 shadow-[0_16px_48px_rgba(0,0,0,0.18)] overflow-hidden max-h-80 overflow-y-auto">
+                {filtered.length === 0 ? (
+                  <div className="flex flex-col items-center py-8 gap-2 text-muted-foreground">
+                    <Plug className="h-8 w-8 opacity-30" />
+                    <p className="text-sm font-medium">No stations found</p>
+                  </div>
+                ) : (
+                  filtered.slice(0, 8).map((s) => {
+                    const avail = s.isOpen && s.availablePorts > 0;
+                    return (
+                      <button
+                        key={s._id}
+                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-primary/5 active:bg-primary/10 transition text-left border-b border-border/40 last:border-0"
+                        onMouseDown={() => {
+                          setSelected(s);
+                          setSearch(s.name);
+                          setShowDropdown(false);
+                        }}
+                      >
+                        <div className={`h-9 w-9 rounded-xl grid place-items-center shrink-0 ${avail ? "bg-emerald-50" : "bg-muted"}`}>
+                          <Zap className={`h-4 w-4 ${avail ? "text-emerald-600" : "text-muted-foreground"}`} fill="currentColor" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{s.name}</p>
+                          <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            {s.address?.street}, {s.address?.city}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          {s.distanceKm !== undefined && (
+                            <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg">
+                              {s.distanceKm < 1 ? `${(s.distanceKm * 1000).toFixed(0)}m` : `${s.distanceKm.toFixed(1)}km`}
+                            </span>
+                          )}
+                          <span className={`text-[10px] font-semibold ${avail ? "text-emerald-600" : "text-muted-foreground"}`}>
+                            {avail ? `${s.availablePorts} free` : s.isOpen ? "Full" : "Closed"}
+                          </span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             )}
-            {loadingStations && <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />}
           </div>
         </div>
 
-        {/* Locate button */}
+        {/* ── LOCATE BUTTON ── */}
         <button
           onClick={locate}
-          className="absolute right-4 bottom-[40vh] z-[500] h-12 w-12 rounded-full bg-white shadow-[var(--shadow-elevated)] grid place-items-center hover:scale-105 transition"
+          className="absolute right-4 bottom-[38vh] md:bottom-8 z-[500] h-12 w-12 rounded-full bg-white shadow-[0_4px_20px_rgba(0,0,0,0.15)] grid place-items-center hover:scale-105 active:scale-95 transition-all duration-200"
         >
-          {locating ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <LocateFixed className="h-5 w-5 text-primary" />}
+          {locating
+            ? <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            : <LocateFixed className="h-5 w-5 text-primary" />}
         </button>
 
-        {/* Stations count chip */}
-        <div className="absolute left-4 bottom-[40vh] z-[500] bg-white shadow-[var(--shadow-card)] rounded-full px-4 py-2 text-sm font-semibold flex items-center gap-2">
+        {/* ── STATIONS COUNT CHIP ── */}
+        <div className="absolute left-4 bottom-[38vh] md:bottom-8 z-[500] bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.12)] rounded-full px-4 py-2.5 text-sm font-bold flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary" fill="currentColor" />
           {loadingStations ? "Searching…" : `${filtered.length} nearby`}
         </div>
       </div>
 
-      {/* ── DESKTOP SIDEBAR ── */}
-      <div className="hidden md:flex w-80 lg:w-96 flex-col bg-card border-l border-border shadow-[-4px_0_24px_rgba(0,0,0,0.08)] z-[600]">
-        <div className="px-4 pb-3 border-b border-border flex-shrink-0" style={{ paddingTop: "calc(var(--safe-top) + 4.5rem)" }}>
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-base">Nearby Stations</h2>
-            <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-0">
-              {filtered.length} found
-            </Badge>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto py-2 px-2 space-y-2">
-          {loadingStations ? (
-            <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Loading stations…</p>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-12 px-4">
-              <Plug className="h-10 w-10 mx-auto opacity-20 mb-2" />
-              <p className="font-semibold text-sm">No stations found</p>
-            </div>
-          ) : (
-            filtered.map((s) => (
-              <StationPanelCard
-                key={s._id}
-                station={s}
-                isHovered={hoveredId === s._id}
-                isSelected={selected?._id === s._id}
-                onMouseEnter={() => setHoveredId(s._id)}
-                onMouseLeave={() => setHoveredId(null)}
-                onClick={() => setSelected(s)}
-                cardRef={(el) => {
-                  if (el) cardRefs.current.set(s._id, el);
-                  else cardRefs.current.delete(s._id);
-                }}
-              />
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* ── MOBILE DRAWER (VAUL) ── */}
+      {/* ── MOBILE BOTTOM DRAWER ── */}
       <div className="md:hidden">
-        <Drawer.Root 
-          open={true} 
-          dismissible={false} 
-          modal={false} 
-          snapPoints={["70px", "35vh", "85vh"]} 
+        <Drawer.Root
+          open={true}
+          dismissible={false}
+          modal={false}
+          snapPoints={["70px", "35vh", "80vh"]}
           activeSnapPoint={activeSnapPoint}
           setActiveSnapPoint={setActiveSnapPoint}
         >
           <Drawer.Portal>
-            <Drawer.Content className="bg-card flex flex-col rounded-t-[32px] h-full fixed bottom-0 left-0 right-0 z-[1000] border-t border-border shadow-[0_-8px_30px_rgba(0,0,0,0.08)] outline-none">
-              <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-muted flex-shrink-0" />
-              
-              {/* Drawer Title Row */}
+            <Drawer.Content className="bg-card flex flex-col rounded-t-[28px] h-full fixed bottom-0 left-0 right-0 z-[500] border-t border-border/60 shadow-[0_-8px_40px_rgba(0,0,0,0.1)] outline-none">
+
+              {/* Drag handle */}
+              <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-muted flex-shrink-0" />
+
+              {/* Title row */}
               <div className="px-4 pt-2 pb-3 flex-shrink-0 flex items-center justify-between">
-                <h3 className="font-bold text-sm">Nearby Stations</h3>
-                <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-0">{filtered.length} found</Badge>
+                <div>
+                  <h3 className="font-bold text-sm text-foreground">Nearby Stations</h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Pull up to browse</p>
+                </div>
+                <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-0 font-bold">
+                  {filtered.length} found
+                </Badge>
               </div>
 
-              {/* Scrollable List */}
-              <div className="flex-1 overflow-y-auto px-4 pb-24 space-y-3">
-                 {filtered.map((s) => (
-                   <StationPanelCard
-                     key={s._id}
-                     station={s}
-                     isHovered={hoveredId === s._id}
-                     isSelected={selected?._id === s._id}
-                     onMouseEnter={() => setHoveredId(s._id)}
-                     onMouseLeave={() => setHoveredId(null)}
-                     onClick={() => setSelected(s)}
-                     cardRef={(el) => {
-                       if (el) cardRefs.current.set(s._id, el);
-                       else cardRefs.current.delete(s._id);
-                     }}
-                   />
-                 ))}
-                 {filtered.length === 0 && !loadingStations && (
-                   <div className="text-center py-10 opacity-50">
-                      <Plug className="h-8 w-8 mx-auto mb-2" />
-                      <p className="text-sm">No stations match your search</p>
-                   </div>
-                 )}
+              {/* Station list */}
+              <div className="flex-1 overflow-y-auto px-3 pb-24 space-y-2">
+                {loadingStations ? (
+                  <div className="flex flex-col items-center py-10 gap-3">
+                    <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Finding stations…</p>
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="text-center py-10 opacity-50">
+                    <Plug className="h-8 w-8 mx-auto mb-2" />
+                    <p className="text-sm font-medium">No stations found</p>
+                  </div>
+                ) : (
+                  filtered.map((s) => <MobileStationCard key={s._id} station={s} onSelect={(st) => { setSelected(st); setActiveSnapPoint("70px"); }} />)
+                )}
               </div>
             </Drawer.Content>
           </Drawer.Portal>
         </Drawer.Root>
       </div>
-
-      {/* Station detail sheet (click) */}
-      <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <SheetContent side="bottom" className="rounded-t-3xl p-0 max-h-[90vh] z-[1200] border-0 outline-none">
-          {selected && <StationDetailSheet station={selected} onClose={() => setSelected(null)} />}
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }
 
-/* ─── Right-panel station card ─── */
-function StationPanelCard({
-  station,
-  isHovered,
-  isSelected,
-  onMouseEnter,
-  onMouseLeave,
-  onClick,
-  cardRef,
-}: {
-  station: Station;
-  isHovered: boolean;
-  isSelected: boolean;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
-  onClick: () => void;
-  cardRef: (el: HTMLDivElement | null) => void;
-}) {
+/* ─── Mobile Station Card (in bottom drawer) ─── */
+function MobileStationCard({ station, onSelect }: { station: Station; onSelect: (s: Station) => void }) {
   const avail = station.isOpen && station.availablePorts > 0;
   const minPrice = station.pricing?.length
     ? Math.min(...station.pricing.map((p) => p.priceperKWh))
     : 0;
   const currency = station.pricing?.[0]?.currency ?? "INR";
+  const sym = currency === "INR" ? "₹" : "$";
   const avgRating = station.reviews?.length
     ? (station.reviews.reduce((s, r) => s + r.rating, 0) / station.reviews.length).toFixed(1)
     : null;
 
-  const isActive = isHovered || isSelected;
-
   return (
-    <div
-      ref={cardRef}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      onClick={onClick}
-      className={`group relative rounded-2xl p-3 cursor-pointer transition-all duration-200 border ${
-        isSelected
-          ? "border-primary bg-primary/5 shadow-[var(--shadow-glow)]"
-          : isHovered
-          ? "border-primary/50 bg-accent/60 shadow-[var(--shadow-card)]"
-          : "border-border/50 bg-card hover:bg-accent/40 hover:border-primary/30 shadow-sm"
-      }`}
+    <button
+      onClick={() => onSelect(station)}
+      className="w-full text-left bg-card border border-border/50 rounded-2xl p-3 flex items-center gap-3 hover:border-primary/40 hover:bg-accent/30 active:scale-[0.98] transition-all duration-150 shadow-sm"
     >
-      <div className="flex items-start gap-3">
-        {/* Icon / image */}
-        <div className="relative shrink-0">
-          <div className={`h-16 w-16 rounded-2xl overflow-hidden grid place-items-center transition-all duration-200 ${
-            isActive
-              ? "bg-[image:var(--gradient-primary)] shadow-[var(--shadow-glow)]"
-              : "bg-muted"
-          }`}>
-            {station.Images?.[0] ? (
-              <img src={station.Images[0]} alt={station.name} className="h-full w-full object-cover" />
-            ) : (
-              <Zap className={`h-7 w-7 ${isActive ? "text-white" : "text-primary"}`} fill={isActive ? "white" : "currentColor"} />
-            )}
-          </div>
-          {/* Status dot */}
-          <span className={`absolute -top-1 -right-1 h-5 w-5 rounded-full border-2 border-card ${
-            avail ? "bg-emerald-500" : station.isOpen ? "bg-amber-400" : "bg-muted-foreground"
-          }`} />
-        </div>
+      {/* Icon */}
+      <div className={`h-14 w-14 rounded-2xl grid place-items-center shrink-0 relative ${avail ? "bg-primary/10" : "bg-muted"}`}>
+        {station.Images?.[0] ? (
+          <img src={station.Images[0]} alt={station.name} className="h-full w-full object-cover rounded-2xl" />
+        ) : (
+          <Zap className={`h-6 w-6 ${avail ? "text-primary" : "text-muted-foreground"}`} fill="currentColor" />
+        )}
+        <span className={`absolute -top-1 -right-1 h-4 w-4 rounded-full border-2 border-card ${avail ? "bg-emerald-500" : station.isOpen ? "bg-amber-400" : "bg-slate-400"}`} />
+      </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0 pt-0.5">
-          <div className="flex items-start justify-between gap-1">
-            <p className="font-bold text-base leading-tight truncate">{station.name}</p>
-            <ChevronRight className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isActive ? "translate-x-0.5 text-primary" : ""}`} />
-          </div>
-          <p className="text-xs text-muted-foreground truncate mt-1 flex items-center gap-1">
-            <MapPin className="h-3 w-3 shrink-0" />
-            {station.address?.street}, {station.address?.city}
-          </p>
-
-          {/* Distance + Rating row */}
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
-            {station.distanceKm !== undefined && (
-              <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg">
-                {station.distanceKm < 1
-                  ? `${(station.distanceKm * 1000).toFixed(0)} m`
-                  : `${station.distanceKm.toFixed(1)} km`}
-              </span>
-            )}
-            {avgRating && (
-              <span className="text-[11px] font-bold text-amber-600 flex items-center gap-1">
-                <Star className="h-3 w-3 fill-current" />{avgRating}
-              </span>
-            )}
-            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${
-              avail
-                ? "text-emerald-700 bg-emerald-50"
-                : station.isOpen
-                ? "text-amber-700 bg-amber-50"
-                : "text-muted-foreground bg-muted"
-            }`}>
-              {avail ? `${station.availablePorts} free` : station.isOpen ? "Full" : "Closed"}
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-sm truncate">{station.name}</p>
+        <p className="text-xs text-muted-foreground truncate mt-0.5 flex items-center gap-1">
+          <MapPin className="h-3 w-3 shrink-0" />
+          {station.address?.street}, {station.address?.city}
+        </p>
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          <span className="text-[11px] font-bold text-primary">{sym}{minPrice}/kWh</span>
+          {avgRating && (
+            <span className="text-[11px] text-amber-600 font-bold">★ {avgRating}</span>
+          )}
+          <span className={`text-[11px] font-bold ${avail ? "text-emerald-600" : "text-muted-foreground"}`}>
+            {avail ? `${station.availablePorts} free` : station.isOpen ? "Full" : "Closed"}
+          </span>
+          {station.distanceKm !== undefined && (
+            <span className="text-[11px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
+              {station.distanceKm < 1 ? `${(station.distanceKm * 1000).toFixed(0)}m` : `${station.distanceKm.toFixed(1)}km`}
             </span>
-          </div>
+          )}
         </div>
       </div>
-    </div>
-  );
-}
 
-/* ─── Bottom sheet detail (unchanged UX, shown on click) ─── */
-function StationDetailSheet({ station, onClose }: { station: Station; onClose: () => void }) {
-  const avail = station.isOpen && station.availablePorts > 0;
-  const minPrice = station.pricing?.length
-    ? Math.min(...station.pricing.map((p) => p.priceperKWh))
-    : 0;
-  const currency = station.pricing?.[0]?.currency ?? "INR";
-  const currencySymbol = currency === "INR" ? "₹" : currency === "EUR" ? "€" : "$";
-  const [lng, lat] = station.location.coordinates;
-  const connectorLabel = station.typeOfConnectors[0] ?? "Type 2";
-  const parkingFee = ((station.platformFee || 0) * minPrice / 100).toFixed(1);
-  const avgRating = station.reviews?.length
-    ? (station.reviews.reduce((s, r) => s + r.rating, 0) / station.reviews.length).toFixed(1)
-    : null;
-
-  const now = new Date();
-  const later = new Date(now.getTime() + 60 * 60 * 1000);
-  const fmt = (d: Date) => d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
-
-  return (
-    <div className="overflow-y-auto max-h-[90vh]">
-      <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-muted" />
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-start gap-4">
-          <div className="relative shrink-0">
-            <div className="h-24 w-24 rounded-[24px] overflow-hidden bg-[image:var(--gradient-primary)] grid place-items-center shadow-[var(--shadow-glow)]">
-              {station.Images?.[0] ? (
-                <img src={station.Images[0]} alt={station.name} className="h-full w-full object-cover" />
-              ) : (
-                <Zap className="h-10 w-10 text-white" fill="white" />
-              )}
-            </div>
-          </div>
-          <div className="flex-1 min-w-0 pt-1">
-            <div className="flex items-center gap-2 mb-1">
-               <Badge className={avail ? "bg-emerald-500" : "bg-muted text-muted-foreground"}>
-                 {avail ? "Available" : "Busy"}
-               </Badge>
-               {avgRating && (
-                <div className="flex items-center gap-1 text-amber-500 font-bold text-sm">
-                  <Star className="h-4 w-4 fill-current" />{avgRating}
-                </div>
-              )}
-            </div>
-            <h2 className="text-2xl font-black tracking-tight truncate leading-tight">{station.name}</h2>
-            <p className="text-sm text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
-              {station.address.street}, {station.address.city}
-            </p>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="bg-muted/30 border-2 border-border/50 rounded-3xl p-4 grid grid-cols-3 gap-2">
-          <PillStat top={connectorLabel} label="Connection" />
-          <PillStat top={`${currencySymbol}${minPrice}`} label="Per kWh" />
-          <PillStat top={`${currencySymbol}${parkingFee}`} label="Platform" />
-        </div>
-
-        {/* Arrive / Depart */}
-        <div className="grid grid-cols-2 gap-4">
-          <TimeBox label="Start Time" value={`${fmt(now)}`} />
-          <TimeBox label="End Time" value={`${fmt(later)}`} />
-        </div>
-
-        {/* Actions */}
-        <div className="space-y-3 pt-2">
-          <Link to="/stations/$stationId" params={{ stationId: station._id }} onClick={onClose}>
-            <Button
-              className="w-full h-14 bg-[image:var(--gradient-primary)] hover:opacity-90 text-primary-foreground font-black text-lg rounded-2xl shadow-[var(--shadow-glow)]"
-              disabled={!station.isOpen}
-            >
-              BOOK NOW
-            </Button>
-          </Link>
-          <div className="grid grid-cols-2 gap-3">
-             <Button
-                variant="outline"
-                className="h-12 rounded-xl font-bold"
-                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank")}
-              >
-                <Navigation className="h-4 w-4 mr-2" /> Directions
-              </Button>
-              <Button variant="outline" className="h-12 rounded-xl font-bold" onClick={onClose}>
-                Close
-              </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PillStat({ top, label }: { top: string; label: string }) {
-  return (
-    <div className="text-center px-1">
-      <p className="text-base font-black text-primary truncate leading-tight">{top}</p>
-      <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">{label}</p>
-    </div>
-  );
-}
-
-function TimeBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-card border border-border rounded-2xl p-4 flex flex-col items-center">
-      <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">{label}</p>
-      <p className="text-lg font-black text-foreground mt-1">{value}</p>
-    </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+    </button>
   );
 }
