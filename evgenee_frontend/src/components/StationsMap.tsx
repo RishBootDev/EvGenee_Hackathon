@@ -11,6 +11,7 @@ export function StationsMap(props: {
   selectedId?: string | null;
   hoveredId?: string | null;
   onHover?: (id: string | null) => void;
+  onCenterChange?: (center: [number, number]) => void;
 }) {
   if (typeof window === "undefined") {
     return <div className="h-full w-full bg-muted" />;

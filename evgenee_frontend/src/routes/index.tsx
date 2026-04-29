@@ -24,7 +24,26 @@ const DEFAULT_CENTER: [number, number] = [28.6139, 77.209];
 
 function HomePage() {
   const { isAuthed, loading } = useAuth();
-  const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
+  const [center, setCenter] = useState<[number, number]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("mapCenter");
+      if (saved) {
+        try {
+          return JSON.parse(saved) as [number, number];
+        } catch (e) {
+          // ignore parse error
+        }
+      }
+    }
+    return DEFAULT_CENTER;
+  });
+
+  const handleMapMove = useCallback((newCenter: [number, number]) => {
+    setCenter(newCenter);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("mapCenter", JSON.stringify(newCenter));
+    }
+  }, []);
   const [stations, setStations] = useState<Station[]>([]);
   const [loadingStations, setLoadingStations] = useState(false);
   const [selected, setSelected] = useState<Station | null>(null);
@@ -42,7 +61,11 @@ function HomePage() {
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setCenter([pos.coords.latitude, pos.coords.longitude]);
+        const newCenter: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setCenter(newCenter);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("mapCenter", JSON.stringify(newCenter));
+        }
         setLocating(false);
       },
       (error) => {
@@ -62,7 +85,9 @@ function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (isAuthed) locate();
+    if (isAuthed && typeof window !== "undefined" && !sessionStorage.getItem("mapCenter")) {
+      locate();
+    }
   }, [isAuthed, locate]);
 
   useEffect(() => {
@@ -132,6 +157,7 @@ function HomePage() {
             selectedId={selected?._id}
             hoveredId={hoveredId}
             onHover={handleMapHover}
+            onCenterChange={handleMapMove}
           />
         </div>
 
