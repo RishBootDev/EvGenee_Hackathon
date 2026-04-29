@@ -220,7 +220,18 @@ function HomePage() {
         </div>
       </div>
 
-      {/* ── RIGHT PANEL ── Google Maps-style station sidebar */}
+      {/* ── MOBILE DRAWER TRIGGER ── Shown only on small screens */}
+      <div className="md:hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-[500] w-full px-4 max-w-sm pointer-events-none">
+        <Button
+          onClick={() => setSelected(null)} // This could trigger a separate list sheet
+          className="w-full h-12 bg-card/95 backdrop-blur-md text-foreground border border-border rounded-full shadow-[var(--shadow-elevated)] pointer-events-auto flex items-center justify-center gap-2 font-bold"
+        >
+          <Filter className="h-4 w-4" />
+          View Station List
+        </Button>
+      </div>
+
+      {/* ── RIGHT PANEL / MOBILE LIST ── Google Maps-style station sidebar/drawer */}
       <div className="hidden md:flex w-80 lg:w-96 flex-col bg-card/95 backdrop-blur-sm border-l border-border shadow-[-4px_0_24px_rgba(0,0,0,0.08)] z-[600]">
         {/* Panel header */}
         <div className="px-4 pt-4 pb-3 border-b border-border flex-shrink-0" style={{ paddingTop: "calc(var(--safe-top) + 1rem)" }}>
@@ -278,8 +289,39 @@ function HomePage() {
 
       {/* Station detail sheet (click) */}
       <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <SheetContent side="bottom" className="rounded-t-3xl p-0 max-h-[85vh] z-[1100] border-0">
+        <SheetContent side="bottom" className="rounded-t-3xl p-0 max-h-[85vh] z-[1100] border-0 outline-none">
           {selected && <StationDetailSheet station={selected} onClose={() => setSelected(null)} />}
+        </SheetContent>
+      </Sheet>
+
+      {/* Mobile Station List Sheet (can be triggered by the button) */}
+      <Sheet open={!selected && stations.length > 0} modal={false}>
+        <SheetContent
+          side="bottom"
+          className="md:hidden rounded-t-3xl p-0 h-[35vh] sm:h-[40vh] z-[400] border-t border-border shadow-[0_-8px_30px_rgba(0,0,0,0.08)] outline-none overflow-hidden flex flex-col pointer-events-auto"
+        >
+          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-muted flex-shrink-0" />
+          <div className="px-4 py-3 flex items-center justify-between border-b border-border/50">
+             <h3 className="font-bold text-sm">Nearby Stations</h3>
+             <Badge variant="secondary" className="text-[10px]">{filtered.length} found</Badge>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-2">
+             {filtered.map((s) => (
+               <StationPanelCard
+                 key={s._id}
+                 station={s}
+                 isHovered={hoveredId === s._id}
+                 isSelected={selected?._id === s._id}
+                 onMouseEnter={() => setHoveredId(s._id)}
+                 onMouseLeave={() => setHoveredId(null)}
+                 onClick={() => setSelected(s)}
+                 cardRef={(el) => {
+                   if (el) cardRefs.current.set(s._id, el);
+                   else cardRefs.current.delete(s._id);
+                 }}
+               />
+             ))}
+          </div>
         </SheetContent>
       </Sheet>
     </div>

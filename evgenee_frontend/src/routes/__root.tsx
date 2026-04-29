@@ -31,6 +31,8 @@ export const Route = createRootRoute({
   notFoundComponent: NotFoundComponent,
 });
 
+import { InstallPrompt } from "@/components/InstallPrompt";
+
 function RootComponent() {
   return (
     <AuthProvider>
@@ -38,6 +40,7 @@ function RootComponent() {
         <Outlet />
       </div>
       <BottomNav />
+      <InstallPrompt />
       <Toaster position="top-center" />
     </AuthProvider>
   );
