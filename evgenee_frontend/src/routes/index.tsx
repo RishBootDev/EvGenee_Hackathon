@@ -53,6 +53,7 @@ function HomePage() {
   const [connector, setConnector] = useState<string>("");
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
+  const [activeSnapPoint, setActiveSnapPoint] = useState<string | number | null>("35vh");
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const locate = useCallback(() => {
@@ -236,7 +237,8 @@ function HomePage() {
           dismissible={false} 
           modal={false} 
           snapPoints={["70px", "35vh", "85vh"]} 
-          defaultSnapPoint="35vh"
+          activeSnapPoint={activeSnapPoint}
+          setActiveSnapPoint={setActiveSnapPoint}
         >
           <Drawer.Portal>
             <Drawer.Content className="bg-card flex flex-col rounded-t-[32px] h-full fixed bottom-0 left-0 right-0 z-[1000] border-t border-border shadow-[0_-8px_30px_rgba(0,0,0,0.08)] outline-none">
@@ -250,6 +252,8 @@ function HomePage() {
                     placeholder="Search location or station"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    onFocus={() => setActiveSnapPoint("85vh")}
+                    onBlur={() => !search && setActiveSnapPoint("35vh")}
                     className="border-0 shadow-none focus-visible:ring-0 px-0 h-10 text-base bg-transparent"
                   />
                   {search && (
