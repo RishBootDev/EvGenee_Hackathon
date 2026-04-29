@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "re
 import type { Station } from "@/lib/api";
 import { Zap, Star, Navigation } from "lucide-react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 
@@ -18,11 +18,18 @@ const stationIcon = (avail: boolean, active: boolean) =>
     iconAnchor: active ? [22, 44] : [18, 36],
   });
 
+// Red pulsing dot for user's location
 const userIcon = L.divIcon({
   className: "",
-  html: `<div class="ev-pin user animate-pulse-ring"></div>`,
-  iconSize: [22, 22],
-  iconAnchor: [11, 11],
+  html: `<div style="
+    width:20px;height:20px;border-radius:50%;
+    background:oklch(0.62 0.22 20);
+    border:3px solid white;
+    box-shadow:0 0 0 5px oklch(0.62 0.22 20 / 0.25),0 2px 8px rgba(0,0,0,0.3);
+    animation:pulse-ring 2s infinite;
+  "></div>`,
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
 });
 
 function FlyTo({ center }: { center: [number, number] }) {
@@ -30,9 +37,7 @@ function FlyTo({ center }: { center: [number, number] }) {
   useEffect(() => {
     const current = map.getCenter();
     const target = L.latLng(center[0], center[1]);
-    if (current.distanceTo(target) > 10) {
-      map.flyTo(center, 13, { duration: 0.8 });
-    }
+    if (current.distanceTo(target) > 10) map.flyTo(center, 13, { duration: 0.8 });
   }, [center, map]);
   return null;
 }
@@ -48,77 +53,41 @@ function MapEvents({ onCenterChange }: { onCenterChange: (center: [number, numbe
 }
 
 function StationPopupCard({ station }: { station: Station }) {
+  const navigate = useNavigate();
   const [lng, lat] = station.location.coordinates;
   const avail = station.isOpen && station.availablePorts > 0;
   const minPrice = station.pricing?.length
     ? Math.min(...station.pricing.map((p) => p.priceperKWh))
     : 0;
-  const currency = station.pricing?.[0]?.currency ?? "INR";
-  const sym = currency === "INR" ? "₹" : "$";
+  const sym = station.pricing?.[0]?.currency === "INR" ? "₹" : "$";
   const avgRating = station.reviews?.length
     ? (station.reviews.reduce((s, r) => s + r.rating, 0) / station.reviews.length).toFixed(1)
     : null;
 
+  const gradBg = "linear-gradient(135deg,oklch(0.68 0.19 148),oklch(0.78 0.17 152))";
+
   return (
-    <div style={{ width: 260, fontFamily: "inherit" }}>
+    <div style={{ width: 260, fontFamily: "inherit", borderRadius: 20, overflow: "hidden" }}>
       {/* Header */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, oklch(0.68 0.19 148), oklch(0.78 0.17 152))",
-          padding: "12px",
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-        }}
-      >
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            background: "rgba(255,255,255,0.2)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            overflow: "hidden",
-            flexShrink: 0,
-          }}
-        >
-          {station.Images?.[0] ? (
-            <img src={station.Images[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <Zap size={18} color="white" fill="white" />
-          )}
+      <div style={{ background: gradBg, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+          {station.Images?.[0]
+            ? <img src={station.Images[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <Zap size={18} color="white" fill="white" />}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontWeight: 800, color: "white", fontSize: 13, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {station.name}
-          </p>
-          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {station.address?.city}
-          </p>
+          <p style={{ fontWeight: 800, color: "white", fontSize: 13, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{station.name}</p>
+          <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 11, margin: 0 }}>{station.address?.city}</p>
         </div>
-        <span
-          style={{
-            background: avail ? "#10b981" : "rgba(255,255,255,0.25)",
-            color: "white",
-            borderRadius: 20,
-            padding: "2px 8px",
-            fontSize: 10,
-            fontWeight: 700,
-            flexShrink: 0,
-          }}
-        >
+        <span style={{ background: avail ? "#10b981" : "rgba(255,255,255,0.25)", color: "white", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
           {avail ? `${station.availablePorts} free` : station.isOpen ? "Full" : "Closed"}
         </span>
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: "flex", borderBottom: "1px solid #f1f5f9" }}>
+      {/* Stats */}
+      <div style={{ display: "flex", borderBottom: "1px solid #f1f5f9", background: "white" }}>
         <div style={{ flex: 1, padding: "8px 4px", textAlign: "center", borderRight: "1px solid #f1f5f9" }}>
-          <p style={{ fontWeight: 800, color: "oklch(0.68 0.19 148)", fontSize: 14, margin: 0 }}>
-            {sym}{minPrice}
-          </p>
+          <p style={{ fontWeight: 800, color: "oklch(0.68 0.19 148)", fontSize: 14, margin: 0 }}>{sym}{minPrice}</p>
           <p style={{ color: "#94a3b8", fontSize: 10, margin: 0 }}>per kWh</p>
         </div>
         {avgRating && (
@@ -130,11 +99,9 @@ function StationPopupCard({ station }: { station: Station }) {
           </div>
         )}
         {station.distanceKm !== undefined && (
-          <div style={{ flex: 1, padding: "8px 4px", textAlign: "center" }}>
+          <div style={{ flex: 1, padding: "8px 4px", textAlign: "center", background: "white" }}>
             <p style={{ fontWeight: 800, color: "#1e293b", fontSize: 14, margin: 0 }}>
-              {station.distanceKm < 1
-                ? `${(station.distanceKm * 1000).toFixed(0)}m`
-                : `${station.distanceKm.toFixed(1)}km`}
+              {station.distanceKm < 1 ? `${(station.distanceKm * 1000).toFixed(0)}m` : `${station.distanceKm.toFixed(1)}km`}
             </p>
             <p style={{ color: "#94a3b8", fontSize: 10, margin: 0 }}>away</p>
           </div>
@@ -142,48 +109,17 @@ function StationPopupCard({ station }: { station: Station }) {
       </div>
 
       {/* Actions */}
-      <div style={{ padding: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        <Link
-          to="/stations/$stationId"
-          params={{ stationId: station._id }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: 36,
-            background: "linear-gradient(135deg, oklch(0.68 0.19 148), oklch(0.78 0.17 152))",
-            color: "white",
-            borderRadius: 10,
-            fontWeight: 800,
-            fontSize: 12,
-            textDecoration: "none",
-            opacity: station.isOpen ? 1 : 0.5,
-            pointerEvents: station.isOpen ? "auto" : "none",
-          }}
+      <div style={{ padding: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, background: "white" }}>
+        <button
+          disabled={!station.isOpen}
+          onClick={() => navigate({ to: "/stations/$stationId", params: { stationId: station._id } })}
+          style={{ height: 36, background: station.isOpen ? gradBg : "#e2e8f0", color: station.isOpen ? "white" : "#94a3b8", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 12, cursor: station.isOpen ? "pointer" : "not-allowed" }}
         >
           Book Now
-        </Link>
+        </button>
         <button
-          onClick={() =>
-            window.open(
-              `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-              "_blank"
-            )
-          }
-          style={{
-            height: 36,
-            border: "1.5px solid #e2e8f0",
-            borderRadius: 10,
-            background: "white",
-            fontSize: 12,
-            fontWeight: 600,
-            color: "#475569",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 4,
-          }}
+          onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank")}
+          style={{ height: 36, border: "1.5px solid #e2e8f0", borderRadius: 10, background: "white", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
         >
           <Navigation size={12} /> Directions
         </button>
@@ -208,7 +144,6 @@ function StationMarker({
   const active = localHover || isSelected;
   const icon = useMemo(() => stationIcon(avail, active), [avail, active]);
 
-  // Open popup when externally selected (e.g., from search dropdown)
   useEffect(() => {
     if (isSelected && markerRef.current) {
       markerRef.current.openPopup();
@@ -221,22 +156,12 @@ function StationMarker({
       position={[lat, lng]}
       icon={icon}
       eventHandlers={{
-        mouseover: () => {
-          setLocalHover(true);
-          markerRef.current?.openPopup();
-        },
+        mouseover: () => { setLocalHover(true); markerRef.current?.openPopup(); },
         mouseout: () => setLocalHover(false),
         click: () => onSelect(station),
       }}
     >
-      <Popup
-        className="ev-station-popup"
-        closeButton={false}
-        autoPan
-        keepInView
-        minWidth={260}
-        maxWidth={260}
-      >
+      <Popup className="ev-station-popup" closeButton={false} autoPan keepInView minWidth={260} maxWidth={260}>
         <StationPopupCard station={station} />
       </Popup>
     </Marker>
@@ -277,20 +202,12 @@ export default function StationsMapInner({
       ref={(m) => { mapRef.current = m; }}
       zoomControl={false}
     >
-      <TileLayer
-        attribution="&copy; OpenStreetMap"
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <FlyTo center={center} />
       {onCenterChange && <MapEvents onCenterChange={onCenterChange} />}
       {userLocation && <Marker position={userLocation} icon={userIcon} />}
       {stations.map((s) => (
-        <StationMarker
-          key={s._id}
-          station={s}
-          isSelected={selectedId === s._id}
-          onSelect={onSelect}
-        />
+        <StationMarker key={s._id} station={s} isSelected={selectedId === s._id} onSelect={onSelect} />
       ))}
     </MapContainer>
   );

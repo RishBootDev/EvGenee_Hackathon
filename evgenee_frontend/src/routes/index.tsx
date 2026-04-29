@@ -139,7 +139,7 @@ function HomePage() {
         {/* ── FLOATING SEARCH BAR ── */}
         <div
           ref={searchRef}
-          className="absolute top-0 left-0 right-0 z-[600] px-3 sm:px-4"
+          className="absolute top-0 left-0 right-0 z-[9999] px-3 sm:px-4 pointer-events-auto"
           style={{ paddingTop: "calc(var(--safe-top) + 0.75rem)" }}
         >
           {/* Input pill */}
