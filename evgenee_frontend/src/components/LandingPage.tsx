@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Zap, MapPin, BatteryCharging, ChevronRight, ShieldCheck, Clock } from "lucide-react";
+import { Zap, MapPin, BatteryCharging, ChevronRight, ShieldCheck, Clock, Mail, Phone, Facebook, Twitter, Instagram, Linkedin, Github } from "lucide-react";
 import { Button } from "./ui/button";
 
 export function LandingPage() {
@@ -169,10 +169,115 @@ export function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-12 text-center text-blue-100/40 px-6">
-        <p className="text-sm font-medium tracking-widest uppercase">© {new Date().getFullYear()} EvGenee Network • Powering the Future</p>
+      <footer className="relative z-10 pt-16 pb-8 md:pt-24 md:pb-12 bg-[#000814] border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-12 mb-16">
+            {/* Brand Section */}
+            <div className="space-y-6 text-center md:text-left border-b border-white/5 pb-10 md:border-b-0 md:pb-0">
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <div className="bg-primary/20 p-2 rounded-xl backdrop-blur-md border border-primary/30 shadow-[var(--shadow-glow)]">
+                  <Zap className="h-6 w-6 text-primary" fill="currentColor" />
+                </div>
+                <span className="text-2xl font-bold tracking-tight text-white">EvGenee</span>
+              </div>
+              <p className="text-blue-100/60 leading-relaxed max-w-sm mx-auto md:mx-0">
+                Empowering the electric revolution with seamless charging solutions. Join our network and drive the future today.
+              </p>
+              <div className="flex justify-center md:justify-start gap-4">
+                <SocialIcon icon={<Twitter className="h-5 w-5" />} href="#" />
+                <SocialIcon icon={<Linkedin className="h-5 w-5" />} href="#" />
+                <SocialIcon icon={<Instagram className="h-5 w-5" />} href="#" />
+                <SocialIcon icon={<Github className="h-5 w-5" />} href="#" />
+              </div>
+            </div>
+
+            {/* Quick Links */}
+            <div className="text-center md:text-left border-b border-white/5 pb-10 md:border-b-0 md:pb-0">
+              <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Product</h4>
+              <ul className="space-y-4">
+                <FooterLink label="Find Stations" href="#" />
+                <FooterLink label="Pricing Plans" href="#" />
+                <FooterLink label="For Business" href="#" />
+                <FooterLink label="Mobile App" href="#" />
+              </ul>
+            </div>
+
+            {/* Support */}
+            <div className="text-center md:text-left border-b border-white/5 pb-10 md:border-b-0 md:pb-0">
+              <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Resources</h4>
+              <ul className="space-y-4">
+                <FooterLink label="Help Center" href="#" />
+                <FooterLink label="Safety Guidelines" href="#" />
+                <FooterLink label="Partner Program" href="#" />
+                <FooterLink label="Blog" href="#" />
+              </ul>
+            </div>
+
+            {/* Contact Section */}
+            <div className="text-center md:text-left">
+              <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Contact Us</h4>
+              <ul className="space-y-4 flex flex-col items-center md:items-start">
+                <li className="flex items-center gap-3 text-blue-100/60 hover:text-primary transition-colors cursor-pointer group">
+                  <div className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary/50 transition-colors">
+                    <Mail className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-sm">support@evgenee.com</span>
+                </li>
+                <li className="flex items-center gap-3 text-blue-100/60 hover:text-primary transition-colors cursor-pointer group">
+                  <div className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary/50 transition-colors">
+                    <Phone className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-sm">+1 (555) EV-GENEE</span>
+                </li>
+                <li className="flex items-center gap-3 text-blue-100/60 hover:text-primary transition-colors cursor-pointer group">
+                  <div className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary/50 transition-colors">
+                    <MapPin className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-sm">Innovation Way, Tech City</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-blue-100/40 pb-[var(--safe-bottom)] mb-4">
+            <p className="text-xs font-semibold tracking-widest uppercase">
+              © {new Date().getFullYear()} EvGenee Network
+            </p>
+            <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-xs font-medium">
+              <a href="#" className="hover:text-primary transition-colors">Privacy</a>
+              <a href="#" className="hover:text-primary transition-colors">Terms</a>
+              <a href="#" className="hover:text-primary transition-colors">Cookies</a>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
+  );
+}
+
+
+function SocialIcon({ icon, href }: { icon: React.ReactNode, href: string }) {
+  return (
+    <a 
+      href={href} 
+      className="h-11 w-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-blue-100/60 hover:text-primary hover:border-primary/50 hover:bg-primary/10 transition-all shadow-sm hover:shadow-[var(--shadow-glow)]"
+    >
+      {icon}
+    </a>
+  );
+}
+
+function FooterLink({ label, href }: { label: string, href: string }) {
+  return (
+    <li>
+      <a 
+        href={href} 
+        className="text-blue-100/60 hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2 group text-sm font-medium"
+      >
+        <span className="h-1 w-1 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity hidden md:block" />
+        {label}
+      </a>
+    </li>
   );
 }
 
