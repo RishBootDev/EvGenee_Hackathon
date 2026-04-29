@@ -2,6 +2,12 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  cloudflare: false,
+  tanstackStart: {
+    server: {
+      preset: "vercel",
+    },
+  },
   vite: {
     plugins: [
       VitePWA({
