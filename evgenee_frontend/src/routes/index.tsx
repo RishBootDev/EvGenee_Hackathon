@@ -62,11 +62,11 @@ function HomePage() {
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const newCenter: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        setCenter(newCenter);
-        setUserLocation(newCenter);
+        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setUserLocation(coords);
+        setCenter(coords); // Only move center on explicit user request
         if (typeof window !== "undefined") {
-          sessionStorage.setItem("mapCenter", JSON.stringify(newCenter));
+          sessionStorage.setItem("mapCenter", JSON.stringify(coords));
         }
         setLocating(false);
       },
