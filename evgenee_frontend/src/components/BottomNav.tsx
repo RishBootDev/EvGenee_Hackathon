@@ -11,7 +11,6 @@ export function BottomNav() {
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
 
-  // Hide on auth pages
   if (loc.pathname.startsWith("/auth")) return null;
   if (!isAuthed) return null;
 
@@ -24,7 +23,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-[1000] bg-card/95 backdrop-blur-xl border-t border-border"
+      className="fixed bottom-0 inset-x-0 z-[1000] bg-[#000814]/95 backdrop-blur-xl border-t border-white/8"
       style={{ paddingBottom: "var(--safe-bottom)" }}
     >
       <div className="max-w-2xl mx-auto grid grid-cols-4 px-2">
@@ -36,13 +35,13 @@ export function BottomNav() {
               to={to}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 py-2.5 text-xs font-medium transition-colors",
-                active ? "text-primary" : "text-muted-foreground"
+                active ? "text-primary" : "text-white/35"
               )}
             >
               <div
                 className={cn(
                   "h-9 w-9 rounded-full flex items-center justify-center transition-all",
-                  active && "bg-accent ring-1 ring-primary/30"
+                  active && "bg-primary/15 ring-1 ring-primary/30"
                 )}
               >
                 <Icon className="h-5 w-5" />
