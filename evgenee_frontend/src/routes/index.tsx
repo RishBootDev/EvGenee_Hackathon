@@ -154,18 +154,18 @@ function HomePage() {
           pointerEvents: "auto",
         }}
       >
-        <div style={{ maxWidth: 540, margin: "0 auto" }}>
+        <div style={{ maxWidth: 540, margin: "0 auto", paddingRight: 90 }}>
           {/* Search pill */}
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
-            background: "rgba(255,255,255,0.97)",
+            background: "rgba(0,8,20,0.90)",
             backdropFilter: "blur(16px)",
             WebkitBackdropFilter: "blur(16px)",
             borderRadius: 16, border: "1px solid rgba(0,0,0,0.08)",
             boxShadow: "0 4px 24px rgba(0,0,0,0.14)",
             padding: "0 12px 0 16px", height: 48,
           }}>
-            <Search size={16} color="#94a3b8" style={{ flexShrink: 0 }} />
+            <Search size={16} color="rgba(255,255,255,0.4)" style={{ flexShrink: 0 }} />
             {/* Plain <input> — no component wrappers that might interfere on mobile */}
             <input
               type="search"
@@ -180,7 +180,7 @@ function HomePage() {
               style={{
                 flex: 1, border: "none", outline: "none",
                 background: "transparent", fontSize: 15,
-                color: "#1e293b", minWidth: 0,
+                color: "#ffffff", minWidth: 0,
                 // Critical for mobile Chrome — prevents browser from ignoring this input
                 WebkitAppearance: "none",
                 touchAction: "manipulation",
@@ -273,13 +273,18 @@ function HomePage() {
       </button>
 
       <div style={{
-        position: "fixed", left: 16, bottom: fabBottom, zIndex: 600,
-        background: "#fff", borderRadius: 24,
-        boxShadow: "0 4px 20px rgba(0,0,0,0.14)",
-        padding: "8px 16px", display: "flex", alignItems: "center", gap: 6,
-        fontSize: 13, fontWeight: 700, color: "#1e293b",
-      }}>
-        <Zap size={14} color="#16a34a" fill="#16a34a" />
+        position: "fixed", right: 16, top: "calc(env(safe-area-inset-top, 0px) + 12px)", zIndex: 9999,
+        background: "rgba(0,8,20,0.90)",
+        border: "1px solid rgba(34,197,94,0.3)",
+        borderRadius: 24,
+        boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        padding: "0 14px", display: "flex", alignItems: "center", gap: 6,
+        fontSize: 13, fontWeight: 700, color: "#22c55e",
+        height: 48,
+        }}>
+        <Zap size={14} color="#22c55e" fill="#22c55e" />
         {loadingStations ? "Searching…" : `${filtered.length} nearby`}
       </div>
 

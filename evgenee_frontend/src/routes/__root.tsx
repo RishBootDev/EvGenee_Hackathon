@@ -36,7 +36,7 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 function RootComponent() {
   return (
     <AuthProvider>
-      <div className="min-h-screen pb-20" style={{ paddingTop: "var(--safe-top)" }}>
+      <div className="min-h-screen pb-20 bg-[#000814]" style={{ paddingTop: "var(--safe-top)" }}>
         <Outlet />
       </div>
       <BottomNav />
