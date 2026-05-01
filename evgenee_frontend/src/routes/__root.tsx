@@ -3,6 +3,8 @@ import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth";
 import { BottomNav } from "@/components/BottomNav";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function NotFoundComponent() {
   return (
@@ -67,12 +69,15 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <AuthProvider>
-      <div className="min-h-screen pb-20" style={{ paddingTop: "var(--safe-top)" }}>
-        <Outlet />
-      </div>
-      <BottomNav />
-      <Toaster position="top-center" />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ThemeToggle />
+        <div className="min-h-screen pb-20" style={{ paddingTop: "var(--safe-top)" }}>
+          <Outlet />
+        </div>
+        <BottomNav />
+        <Toaster position="top-center" />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

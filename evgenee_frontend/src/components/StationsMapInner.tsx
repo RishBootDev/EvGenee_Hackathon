@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-lea
 import type { Station } from "@/lib/api";
 import { Zap } from "lucide-react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { useTheme } from "./theme-provider";
 
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 
@@ -97,6 +98,12 @@ export default function StationsMapInner({
   onCenterChange?: (center: [number, number]) => void;
 }) {
   const mapRef = useRef<L.Map | null>(null);
+  const { theme } = useTheme();
+  
+  const isDark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const tileUrl = isDark 
+    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
   useEffect(() => {
     if (!selectedId || !mapRef.current) return;
@@ -116,8 +123,8 @@ export default function StationsMapInner({
       zoomControl={false}
     >
       <TileLayer
-        attribution="&copy; OpenStreetMap"
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url={tileUrl}
       />
       <FlyTo center={center} />
       {onCenterChange && <MapEvents onCenterChange={onCenterChange} />}

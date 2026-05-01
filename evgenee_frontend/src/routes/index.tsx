@@ -167,7 +167,7 @@ function HomePage() {
           style={{ paddingTop: "calc(var(--safe-top) + 0.75rem)" }}
         >
           <div className="max-w-md mx-auto pointer-events-auto">
-            <div className="bg-white rounded-full shadow-[var(--shadow-elevated)] flex items-center gap-2 pl-4 pr-2 py-1.5">
+            <div className="bg-card text-foreground rounded-full shadow-[var(--shadow-elevated)] flex items-center gap-2 pl-4 pr-2 py-1.5">
               <Search className="h-4 w-4 text-muted-foreground shrink-0" />
               <Input
                 placeholder="Search location or station"
@@ -194,7 +194,7 @@ function HomePage() {
                     className={`text-xs px-3 py-1.5 rounded-full font-medium transition shadow-sm ${
                       connector === c
                         ? "bg-primary text-primary-foreground"
-                        : "bg-white text-foreground border border-border"
+                        : "bg-card text-foreground border border-border"
                     }`}
                   >
                     {c}
@@ -208,13 +208,13 @@ function HomePage() {
         {/* Locate button */}
         <button
           onClick={locate}
-          className="absolute right-4 bottom-24 z-[500] h-12 w-12 rounded-full bg-white shadow-[var(--shadow-elevated)] grid place-items-center hover:scale-105 transition"
+          className="absolute right-4 bottom-24 z-[500] h-12 w-12 rounded-full bg-card text-foreground shadow-[var(--shadow-elevated)] grid place-items-center hover:scale-105 transition"
         >
           {locating ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <LocateFixed className="h-5 w-5 text-primary" />}
         </button>
 
         {/* Stations count chip */}
-        <div className="absolute left-4 bottom-24 z-[500] bg-white shadow-[var(--shadow-card)] rounded-full px-4 py-2 text-sm font-semibold flex items-center gap-2">
+        <div className="absolute left-4 bottom-24 z-[500] bg-card text-foreground shadow-[var(--shadow-card)] rounded-full px-4 py-2 text-sm font-semibold flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary" fill="currentColor" />
           {loadingStations ? "Searching…" : `${filtered.length} nearby`}
         </div>
