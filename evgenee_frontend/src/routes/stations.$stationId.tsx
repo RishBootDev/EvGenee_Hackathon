@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { BookingsAPI, StationsAPI, type Station } from "@/lib/api";
+import { BookingsAPI, StationsAPI, PaymentAPI, type Station } from "@/lib/api";
 import { socket } from "@/lib/socket";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,9 +127,28 @@ function StationDetail() {
       toast.error("End time must be after start time");
       return;
     }
+    // Calculate total cost to initialize payment
+    const pricing = station?.pricing?.find(p => p.connectorType === connector) || station?.pricing?.[0];
+    const pricePerKWh = pricing?.priceperKWh || 0;
+    const currency = pricing?.currency || "INR";
+    
+    // Duration in hours
+    const startH = parseInt(selectedSlot.startTime.split(":")[0]);
+    const startM = parseInt(selectedSlot.startTime.split(":")[1]);
+    const endH = parseInt(endTime.split(":")[0]);
+    const endM = parseInt(endTime.split(":")[1]);
+    const durationHours = (endH + endM / 60) - (startH + startM / 60);
+    
+    const estimatedKWh = station ? parseFloat((station.chargingSpeed * durationHours).toFixed(2)) : 0;
+    const totalCost = parseFloat((estimatedKWh * pricePerKWh).toFixed(2));
+    const platformFee = station ? parseFloat(((totalCost * station.platformFee) / 100).toFixed(2)) : 0;
+    const grandTotal = parseFloat((totalCost + platformFee).toFixed(2));
+    const advancePayment = parseFloat((grandTotal * 0.20).toFixed(2));
+
     setBooking(true);
+
     try {
-      const r = await BookingsAPI.create({
+      await BookingsAPI.validate({
         station: stationId,
         connectorType: connector,
         date,
@@ -137,13 +156,84 @@ function StationDetail() {
         endTime,
         vehicleNumber,
       });
-      const b = r.data?.data;
-      toast.success("Booking confirmed!", { description: b?.otp });
-      nav({ to: "/bookings" });
     } catch (e) {
-      toast.error(getApiError(e, "Booking failed"));
-    } finally {
+      toast.error(getApiError(e, "Slot no longer available or overlapping booking exists."));
       setBooking(false);
+      return;
+    }
+
+    const executeBooking = async () => {
+      try {
+        const r = await BookingsAPI.create({
+          station: stationId,
+          connectorType: connector,
+          date,
+          startTime: selectedSlot.startTime,
+          endTime,
+          vehicleNumber,
+        });
+        const b = r.data?.data;
+        toast.success("Booking confirmed!", { description: b?.otp });
+        nav({ to: "/bookings" });
+      } catch (e) {
+        toast.error(getApiError(e, "Booking failed"));
+        setBooking(false);
+      }
+    };
+
+    if (advancePayment > 0) {
+      try {
+        const orderRes = await PaymentAPI.createOrder({ amount: advancePayment, currency });
+        const order = orderRes.data;
+
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || "",
+          amount: order.amount,
+          currency: order.currency,
+          name: "EvGenee Charging",
+          description: "Booking at " + station?.name,
+          order_id: order.id,
+          handler: async function (response: any) {
+            try {
+              await PaymentAPI.updatePayment({
+                orderId: order.id,
+                paymentId: response.razorpay_payment_id,
+                status: "paid"
+              });
+              await executeBooking();
+            } catch (err) {
+              toast.error("Failed to verify payment");
+              setBooking(false);
+            }
+          },
+          prefill: {
+            name: "EvGenee User",
+            email: "user@example.com",
+            contact: "9999999999"
+          },
+          theme: {
+            color: "#22c55e"
+          },
+          modal: {
+            ondismiss: function() {
+              toast.error("Payment cancelled");
+              setBooking(false);
+            }
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on("payment.failed", function (response: any) {
+          toast.error("Payment Failed: " + response.error.description);
+          setBooking(false);
+        });
+        rzp.open();
+      } catch (e) {
+        toast.error(getApiError(e, "Failed to initiate payment"));
+        setBooking(false);
+      }
+    } else {
+      await executeBooking();
     }
   };
 
@@ -264,7 +354,7 @@ function StationDetail() {
               disabled={booking || !selectedSlot}
               className="bg-[image:var(--gradient-primary)] text-primary-foreground shadow-[var(--shadow-glow)] font-semibold"
             >
-              {booking ? <Loader2 className="h-4 w-4 animate-spin" /> : "BOOK CHARGER"}
+              {booking ? <Loader2 className="h-4 w-4 animate-spin" /> : "PAY 20% ADVANCE"}
             </Button>
           </div>
         </div>

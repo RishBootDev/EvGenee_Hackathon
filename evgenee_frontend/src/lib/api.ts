@@ -121,6 +121,14 @@ export const StationsAPI = {
 
 // ===== Bookings =====
 export const BookingsAPI = {
+  validate: (d: {
+    station: string;
+    connectorType: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    vehicleNumber?: string;
+  }) => api.post("/bookings/validate", d),
   create: (d: {
     station: string;
     connectorType: string;
@@ -139,4 +147,11 @@ export const BookingsAPI = {
   cancel: (id: string, d?: { reason?: string }) => api.post(`/bookings/${id}/cancel`, d ?? {}),
   checkIn: (id: string, d: { otp: string }) => api.post(`/bookings/${id}/check-in`, d),
   complete: (id: string) => api.post(`/bookings/${id}/complete`),
+};
+
+// ===== Payments =====
+export const PaymentAPI = {
+  createOrder: (d: { amount: number; currency: string }) => api.post("/payment/create-order", d),
+  updatePayment: (d: { orderId: string; paymentId: string; status: string }) =>
+    api.post("/payment/update-payment", d),
 };

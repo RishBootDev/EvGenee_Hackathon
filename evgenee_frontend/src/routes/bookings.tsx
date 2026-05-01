@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { BookingsAPI, type Booking, type Station } from "@/lib/api";
+import { BookingsAPI, PaymentAPI, type Booking, type Station } from "@/lib/api";
 import { socket } from "@/lib/socket";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -134,14 +134,76 @@ function BookingsPage() {
 
   const complete = async (b: Booking) => {
     setBusyId(b._id);
-    try {
-      await BookingsAPI.complete(b._id);
-      toast.success("Session completed!");
-      load();
-    } catch (e) {
-      toast.error(getApiError(e, "Complete failed"));
-    } finally {
-      setBusyId(null);
+
+    const executeComplete = async () => {
+      try {
+        await BookingsAPI.complete(b._id);
+        toast.success("Session completed! Remaining 80% paid.");
+        setBusyId(null);
+        load();
+      } catch (e) {
+        toast.error(getApiError(e, "Complete failed"));
+        setBusyId(null);
+      }
+    };
+
+    const remainingPayment = parseFloat((b.grandTotal * 0.80).toFixed(2));
+
+    if (remainingPayment > 0) {
+      try {
+        const station = typeof b.station === 'object' ? (b.station as Station) : null;
+        const pricing = station?.pricing?.find(p => p.connectorType === b.connectorType) || station?.pricing?.[0];
+        const currency = pricing?.currency || "INR";
+
+        const orderRes = await PaymentAPI.createOrder({ amount: remainingPayment, currency });
+        const order = orderRes.data;
+
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || "",
+          amount: order.amount,
+          currency: order.currency,
+          name: "EvGenee Charging",
+          description: `Remaining payment for ${station?.name || 'Booking'}`,
+          order_id: order.id,
+          handler: async function (response: any) {
+            try {
+              await PaymentAPI.updatePayment({
+                orderId: order.id,
+                paymentId: response.razorpay_payment_id,
+                status: "paid"
+              });
+              await executeComplete();
+            } catch (err) {
+              toast.error("Failed to verify payment");
+              setBusyId(null);
+            }
+          },
+          prefill: {
+            name: typeof b.user === 'object' ? b.user.name : "EvGenee User",
+            email: typeof b.user === 'object' ? b.user.email : "user@example.com",
+            contact: "9999999999"
+          },
+          theme: { color: "#22c55e" },
+          modal: {
+            ondismiss: function() {
+              toast.error("Payment cancelled. Please pay to complete.");
+              setBusyId(null);
+            }
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on("payment.failed", function (response: any) {
+          toast.error(`Payment Failed: ${response.error.description}`);
+          setBusyId(null);
+        });
+        rzp.open();
+      } catch (e) {
+        toast.error(getApiError(e, "Failed to initiate payment"));
+        setBusyId(null);
+      }
+    } else {
+      await executeComplete();
     }
   };
 
@@ -258,7 +320,7 @@ function BookingsPage() {
                             disabled={isBusy}
                             className="bg-gradient-to-r from-green-600 to-green-400 text-white rounded-xl text-xs font-bold"
                           >
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />Complete
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />Pay Balance & Complete
                           </Button>
                         )}
                       </div>
@@ -322,6 +384,14 @@ function BookingsPage() {
                   <div className="pt-1.5 border-t border-white/10 flex justify-between font-bold">
                     <span className="text-white">Grand Total</span>
                     <span className="text-primary">{formatCurrency(selectedBooking.grandTotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs pt-1">
+                    <span className="text-white/40">Advance Paid (20%)</span>
+                    <span className="text-success">{formatCurrency(selectedBooking.grandTotal * 0.20)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-white/40">Balance Due (80%)</span>
+                    <span className="text-destructive">{formatCurrency(selectedBooking.grandTotal * 0.80)}</span>
                   </div>
                 </div>
               </div>
