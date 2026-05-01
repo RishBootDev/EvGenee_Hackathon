@@ -617,8 +617,116 @@ const getStationBookings = async (req, res, next) => {
   }
 };
 
+const validateBooking = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { station: stationId, connectorType, date, startTime, endTime } = req.body;
+
+    const station = await Station.findById(stationId);
+    if (!station) {
+      return res.status(404).json({ success: false, message: 'Station not found' });
+    }
+    if (!station.isOpen) {
+      return res.status(400).json({ success: false, message: 'Station is currently closed' });
+    }
+    if (station.status !== 'active') {
+      return res.status(400).json({ success: false, message: 'Station is inactive' });
+    }
+
+    if (!station.typeOfConnectors.includes(connectorType)) {
+      return res.status(400).json({
+        success: false,
+        message: `This station does not support ${connectorType} connector. Available: ${station.typeOfConnectors.join(', ')}`,
+      });
+    }
+
+    if (station.openingHours) {
+      const [openTime, closeTime] = station.openingHours.split('-').map((t) => t.trim());
+      const openMin = timeToMinutes(openTime);
+      const closeMin = timeToMinutes(closeTime);
+      const bookStartMin = timeToMinutes(startTime);
+      const bookEndMin = timeToMinutes(endTime);
+
+      if (bookStartMin < openMin || bookEndMin > closeMin) {
+        return res.status(400).json({
+          success: false,
+          message: `Booking must be within station hours: ${station.openingHours}`,
+        });
+      }
+    }
+
+    const bookingDate = new Date(date);
+    bookingDate.setHours(0, 0, 0, 0);
+
+    const existingBookings = await Booking.find({
+      station: stationId,
+      date: bookingDate,
+      connectorType,
+      status: { $in: ['pending', 'confirmed', 'in-progress'] },
+    });
+
+    const requestedStart = timeToMinutes(startTime);
+    const requestedEnd = timeToMinutes(endTime);
+
+    for (let minute = requestedStart; minute < requestedEnd; minute++) {
+      let concurrentCount = 0;
+      for (const booking of existingBookings) {
+        const bStart = timeToMinutes(booking.startTime);
+        const bEnd = timeToMinutes(booking.endTime);
+        if (minute >= bStart && minute < bEnd) {
+          concurrentCount++;
+        }
+      }
+      
+      if (concurrentCount >= station.availablePorts) {
+        const conflictHour = Math.floor(minute / 60).toString().padStart(2, '0');
+        const conflictMin = (minute % 60).toString().padStart(2, '0');
+        return res.status(409).json({
+          success: false,
+          message: `No available ports at ${conflictHour}:${conflictMin}. All ${station.availablePorts} ports are booked.`,
+          suggestion: 'Try a different time slot or connector type',
+        });
+      }
+    }
+
+    const userConflict = await Booking.findOne({
+      user: userId,
+      date: bookingDate,
+      status: { $in: ['pending', 'confirmed', 'in-progress'] },
+      $or: [
+        {
+          $and: [
+            { startTime: { $lt: endTime } },
+            { endTime: { $gt: startTime } },
+          ],
+        },
+      ],
+    });
+
+    if (userConflict) {
+      return res.status(409).json({
+        success: false,
+        message: 'You already have an overlapping booking at this time',
+        existingBooking: {
+          station: userConflict.station,
+          startTime: userConflict.startTime,
+          endTime: userConflict.endTime,
+        },
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Slot is available and valid',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createBooking,
+  validateBooking,
   checkAvailability,
   getUserBookings,
   getBookingById,

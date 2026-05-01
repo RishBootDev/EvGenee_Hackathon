@@ -8,6 +8,7 @@ const {
     checkIn,
     completeBooking,
     getStationBookings,
+    validateBooking,
 } = require('../controllers/booking.controller');
 const { validateToken } = require('../middlewares/auth.middleware');
 const { authorize } = require('../middlewares/authorize.middleware');
@@ -22,6 +23,7 @@ const router = express.Router();
 
 router.use(validateToken);
 
+router.post('/validate', createBookingValidation, handleValidationErrors, validateBooking);
 router.post('/create', createBookingValidation, handleValidationErrors, createBooking);
 router.get('/availability', checkAvailabilityValidation, handleValidationErrors, checkAvailability);
 router.get('/my-bookings', getUserBookings);

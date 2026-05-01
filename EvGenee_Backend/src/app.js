@@ -39,6 +39,9 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/stations', stationRoutes);
 app.use('/api/v1/bookings', bookingRoutes);
 
+const paymentRoutes = require('./routes/payment.route');
+app.use('/api/v1/payment', paymentRoutes);
+
 app.use((req, res) => {
     res.status(404).json({
         success: false,

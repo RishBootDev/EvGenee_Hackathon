@@ -34,7 +34,13 @@ function HomePage() {
     sessionStorage.setItem("mapCenter", JSON.stringify(c));
   }, []);
 
-  const [stations, setStations] = useState<Station[]>([]);
+  const [stations, setStations] = useState<Station[]>(() => {
+    if (typeof window !== "undefined") {
+      const s = sessionStorage.getItem("stationsCache");
+      if (s) { try { return JSON.parse(s) as Station[]; } catch {} }
+    }
+    return [];
+  });
   const [loadingStations, setLoadingStations] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -72,12 +78,21 @@ function HomePage() {
     if (!isAuthed) return;
     let cancel = false;
     (async () => {
-      setLoadingStations(true);
+      // Show loading only if we have no cached data
+      if (!sessionStorage.getItem("stationsCache")) {
+        setLoadingStations(true);
+      }
       try {
         const r = await StationsAPI.nearby({ lat: center[0], lng: center[1], maxDistance: 50000 });
-        if (!cancel) setStations(r.data?.data ?? []);
+        if (!cancel) {
+          const newStations = r.data?.data ?? [];
+          setStations(newStations);
+          sessionStorage.setItem("stationsCache", JSON.stringify(newStations));
+        }
       } catch (e) {
-        if (!cancel) toast.error(getApiError(e, "Failed to load stations"));
+        if (!cancel && !sessionStorage.getItem("stationsCache")) {
+          toast.error(getApiError(e, "Failed to load stations"));
+        }
       } finally {
         if (!cancel) setLoadingStations(false);
       }
