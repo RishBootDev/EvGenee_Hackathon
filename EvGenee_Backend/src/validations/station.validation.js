@@ -132,6 +132,6 @@ const addReviewValidation = [
 
 module.exports = {
     addStationValidation,
-    nearbyStationValidation,
+    nearbyStationValidation, 
     addReviewValidation,
 };

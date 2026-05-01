@@ -25,7 +25,7 @@ const createBooking = async (req, res, next) => {
     const userId = req.user.id;
     const { station: stationId, connectorType, date, startTime, endTime, vehicleNumber } = req.body;
 
-    
+
     const station = await Station.findById(stationId);
     if (!station) {
       return res.status(404).json({ success: false, message: 'Station not found' });
@@ -37,7 +37,7 @@ const createBooking = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Station is inactive' });
     }
 
-    
+
     if (!station.typeOfConnectors.includes(connectorType)) {
       return res.status(400).json({
         success: false,
@@ -45,7 +45,7 @@ const createBooking = async (req, res, next) => {
       });
     }
 
-  
+
     if (station.openingHours) {
       const [openTime, closeTime] = station.openingHours.split('-').map((t) => t.trim());
       const openMin = timeToMinutes(openTime);
@@ -61,18 +61,17 @@ const createBooking = async (req, res, next) => {
       }
     }
 
-   
+
     const bookingDate = new Date(date);
     bookingDate.setHours(0, 0, 0, 0);
 
     const existingBookings = await Booking.find({
       station: stationId,
       date: bookingDate,
-      connectorType,
       status: { $in: ['pending', 'confirmed', 'in-progress'] },
     });
 
-    
+
     const requestedStart = timeToMinutes(startTime);
     const requestedEnd = timeToMinutes(endTime);
 
@@ -85,19 +84,19 @@ const createBooking = async (req, res, next) => {
           concurrentCount++;
         }
       }
-      
+
       if (concurrentCount >= station.availablePorts) {
         const conflictHour = Math.floor(minute / 60).toString().padStart(2, '0');
         const conflictMin = (minute % 60).toString().padStart(2, '0');
         return res.status(409).json({
           success: false,
           message: `No available ports at ${conflictHour}:${conflictMin}. All ${station.availablePorts} ports are booked.`,
-          suggestion: 'Try a different time slot or connector type',
+          suggestion: 'Try a different time slot',
         });
       }
     }
 
-  
+
     const userConflict = await Booking.findOne({
       user: userId,
       date: bookingDate,
@@ -124,25 +123,25 @@ const createBooking = async (req, res, next) => {
       });
     }
 
-    
+
     const durationMinutes = requestedEnd - requestedStart;
     const pricing = station.pricing.find((p) => p.connectorType === connectorType);
     const pricePerKWh = pricing ? pricing.priceperKWh : 0;
 
-  
+
     const durationHours = durationMinutes / 60;
     const estimatedKWh = parseFloat((station.chargingSpeed * durationHours).toFixed(2));
     const totalCost = parseFloat((estimatedKWh * pricePerKWh).toFixed(2));
     const platformFee = parseFloat(((totalCost * station.platformFee) / 100).toFixed(2));
     const grandTotal = parseFloat((totalCost + platformFee).toFixed(2));
 
-  
+
     const otp = generateOtp();
     const otpExpiresAt = new Date(bookingDate);
     const [endH, endM] = endTime.split(':').map(Number);
     otpExpiresAt.setHours(endH, endM, 0, 0);
 
-    
+
     const booking = await Booking.create({
       user: userId,
       station: stationId,
@@ -161,7 +160,7 @@ const createBooking = async (req, res, next) => {
       otpExpiresAt,
     });
 
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`station_${stationId}`).emit('booking:created', {
@@ -179,7 +178,7 @@ const createBooking = async (req, res, next) => {
         status: 'confirmed',
       });
 
-      
+
       const updatedBookings = await Booking.countDocuments({
         station: stationId,
         date: bookingDate,
@@ -238,15 +237,11 @@ const checkAvailability = async (req, res, next) => {
       status: { $in: ['pending', 'confirmed', 'in-progress'] },
     };
 
-    if (connectorType) {
-      matchQuery.connectorType = connectorType;
-    }
-
     const bookings = await Booking.find(matchQuery).select(
       'startTime endTime connectorType status'
     );
 
-    
+
     const [openTime, closeTime] = station.openingHours
       .split('-')
       .map((t) => t.trim());
@@ -258,7 +253,7 @@ const checkAvailability = async (req, res, next) => {
       const slotStart = `${Math.floor(min / 60).toString().padStart(2, '0')}:${(min % 60).toString().padStart(2, '0')}`;
       const slotEnd = `${Math.floor((min + 30) / 60).toString().padStart(2, '0')}:${((min + 30) % 60).toString().padStart(2, '0')}`;
 
-      
+
       let overlapping = 0;
       for (const b of bookings) {
         if (isOverlapping(slotStart, slotEnd, b.startTime, b.endTime)) {
@@ -338,7 +333,7 @@ const getBookingById = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
 
-    
+
     if (booking.user._id.toString() !== req.user.id) {
       const station = await Station.findById(booking.station._id);
       if (!station || station.ownerofStation.toString() !== req.user.id) {
@@ -378,7 +373,7 @@ const cancelBooking = async (req, res, next) => {
       });
     }
 
-  
+
     const now = new Date();
     const bookingStart = new Date(booking.date);
     const [h, m] = booking.startTime.split(':').map(Number);
@@ -399,7 +394,7 @@ const cancelBooking = async (req, res, next) => {
     booking.cancellationReason = reason || 'Cancelled by user';
     await booking.save();
 
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`station_${booking.station}`).emit('booking:cancelled', {
@@ -436,7 +431,7 @@ const cancelBooking = async (req, res, next) => {
   }
 };
 
- 
+
 const checkIn = async (req, res, next) => {
   try {
     const { bookingId } = req.params;
@@ -448,8 +443,23 @@ const checkIn = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
 
-    if (booking.user.toString() !== req.user.id) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
+    const station = await Station.findById(booking.station);
+    const isOwner = station && station.ownerofStation.toString() === req.user.id;
+
+    if (!isOwner) {
+      return res.status(403).json({ success: false, message: 'Only station owners can perform check-in.' });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const bookingDate = new Date(booking.date);
+    bookingDate.setHours(0, 0, 0, 0);
+
+    if (today.getTime() !== bookingDate.getTime()) {
+      return res.status(400).json({
+        success: false,
+        message: 'You can only check-in on the exact date of your booking.'
+      });
     }
 
     if (booking.status !== 'confirmed') {
@@ -473,7 +483,7 @@ const checkIn = async (req, res, next) => {
     booking.otpExpiresAt = undefined;
     await booking.save();
 
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`station_${booking.station}`).emit('booking:checkedIn', {
@@ -533,7 +543,7 @@ const completeBooking = async (req, res, next) => {
     booking.completedAt = new Date();
     await booking.save();
 
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`station_${booking.station}`).emit('booking:completed', {
