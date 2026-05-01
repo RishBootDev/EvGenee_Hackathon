@@ -166,10 +166,10 @@ function HomePage() {
           right: 0,
           zIndex: 9999,
           padding: "calc(env(safe-area-inset-top, 0px) + 12px) 12px 0",
-          pointerEvents: "auto",
+          pointerEvents: "none",
         }}
       >
-        <div style={{ maxWidth: 540, margin: "0 auto", paddingRight: 90 }}>
+        <div style={{ maxWidth: 540, margin: "0 auto", paddingRight: 90, pointerEvents: "auto" }}>
           {/* Search pill */}
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
@@ -194,11 +194,10 @@ function HomePage() {
               onBlur={() => setTimeout(() => setSnap("35vh"), 250)}
               style={{
                 flex: 1, border: "none", outline: "none",
-                background: "transparent", fontSize: 15,
+                background: "transparent", fontSize: 16,
                 color: "#ffffff", minWidth: 0,
                 // Critical for mobile Chrome — prevents browser from ignoring this input
                 WebkitAppearance: "none",
-                touchAction: "manipulation",
               }}
             />
             {search ? (
