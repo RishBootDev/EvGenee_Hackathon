@@ -119,7 +119,7 @@ function ProfilePage() {
                 Vehicle
               </span>
             </h2>
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-white/40 uppercase tracking-wide">Type</Label>
                 <Select value={form.vehicleType} onValueChange={(v) => setForm({ ...form, vehicleType: v })}>
