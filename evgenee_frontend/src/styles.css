@@ -1,4 +1,4 @@
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @source "../src";
 @import "tw-animate-css";
 @import "leaflet/dist/leaflet.css";
@@ -168,16 +168,35 @@
 }
 .ev-pin svg { transform: rotate(45deg); color: white; }
 .ev-pin.unavail { background: oklch(0.65 0.04 240); box-shadow: 0 4px 14px -4px oklch(0 0 0 / 0.3); }
+.ev-pin.hovered {
+  width: 44px;
+  height: 44px;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 4px white, 0 0 0 7px var(--color-primary), var(--shadow-glow);
+  z-index: 1000;
+}
+.ev-pin.hovered svg { transform: rotate(45deg); }
 .ev-pin.user {
-  background: var(--pin);
-  box-shadow: 0 0 0 8px oklch(0.62 0.22 20 / 0.18), 0 0 0 16px oklch(0.62 0.22 20 / 0.08);
+  background: #ef4444;
+  box-shadow: 0 0 0 8px rgba(239,68,68,0.18), 0 0 0 16px rgba(239,68,68,0.08);
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+/* User location dot (separate from station pins) */
+.ev-user-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  animation: user-pulse 2s ease-out infinite;
 }
-.animate-float { animation: float 3s ease-in-out infinite; }
+
+@keyframes user-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5), 0 2px 8px rgba(0,0,0,0.3); }
+  70% { box-shadow: 0 0 0 14px rgba(239,68,68,0), 0 2px 8px rgba(0,0,0,0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0), 0 2px 8px rgba(0,0,0,0.3); }
+}
 
 @keyframes pulse-ring {
   0% { box-shadow: 0 0 0 0 oklch(0.68 0.19 148 / 0.5); }
@@ -185,3 +204,36 @@
   100% { box-shadow: 0 0 0 0 oklch(0.68 0.19 148 / 0); }
 }
 .animate-pulse-ring { animation: pulse-ring 2s infinite; }
+
+/* ── Custom Station Popup (overrides Leaflet defaults) ── */
+.ev-station-popup .leaflet-popup-content-wrapper {
+  background: white !important;
+  border: none !important;
+  box-shadow: 0 12px 48px -8px rgba(0,0,0,0.22) !important;
+  padding: 0 !important;
+  border-radius: 20px !important;
+  overflow: hidden !important;
+}
+.ev-station-popup .leaflet-popup-tip-container {
+  display: none !important;
+}
+.ev-station-popup .leaflet-popup-content {
+  margin: 0 !important;
+  width: auto !important;
+  line-height: normal !important;
+}
+.ev-station-popup {
+  margin-bottom: 16px !important;
+}
+
+/* ── Smooth transitions for the vaul drawer ── */
+[data-vaul-drawer] {
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1) !important;
+}
+
+/* ── Mobile safe area padding ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

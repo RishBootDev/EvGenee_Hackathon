@@ -73,9 +73,28 @@ function NewStation() {
   };
 
   const useMyLocation = () => {
-    navigator.geolocation?.getCurrentPosition(
-      (p) => setForm((f) => ({ ...f, lat: p.coords.latitude.toString(), lng: p.coords.longitude.toString() })),
-      () => toast.error("Couldn't get location")
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser.");
+      return;
+    }
+    toast.info("Fetching your location...");
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setForm((f) => ({ ...f, lat: p.coords.latitude.toString(), lng: p.coords.longitude.toString() }));
+        toast.success("Location fetched successfully!");
+      },
+      (error) => {
+        let msg = "Couldn't get your location.";
+        if (error.code === error.PERMISSION_DENIED) {
+           msg = "Location permission denied. Please enable it in your browser settings.";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+           msg = "Location information is unavailable.";
+        } else if (error.code === error.TIMEOUT) {
+           msg = "The request to get user location timed out.";
+        }
+        toast.error(msg);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 

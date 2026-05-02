@@ -1,16 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { BookingsAPI, StationsAPI, type Station } from "@/lib/api";
+import { BookingsAPI, StationsAPI, PaymentAPI, type Station } from "@/lib/api";
 import { socket } from "@/lib/socket";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Loader2, MapPin, Phone, Star, Zap, Navigation } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Phone, Star, Zap, Navigation, Send } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, getApiError } from "@/lib/utils";
 import { format } from "date-fns";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/stations/$stationId")({
   component: StationDetail,
@@ -30,6 +31,32 @@ function StationDetail() {
   const [endTime, setEndTime] = useState("");
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [booking, setBooking] = useState(false);
+
+  // Review states
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewing, setReviewing] = useState(false);
+
+  const submitReview = async () => {
+    if (!reviewComment.trim()) return;
+    setReviewing(true);
+    try {
+      await StationsAPI.review(stationId, {
+        rating: reviewRating,
+        comment: reviewComment,
+      });
+      toast.success("Review added!");
+      setReviewComment("");
+      setReviewRating(5);
+      // Refresh station data
+      const r = await StationsAPI.details(stationId);
+      setStation(r.data?.data);
+    } catch (e) {
+      toast.error(getApiError(e, "Failed to add review"));
+    } finally {
+      setReviewing(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -100,9 +127,28 @@ function StationDetail() {
       toast.error("End time must be after start time");
       return;
     }
+    // Calculate total cost to initialize payment
+    const pricing = station?.pricing?.find(p => p.connectorType === connector) || station?.pricing?.[0];
+    const pricePerKWh = pricing?.priceperKWh || 0;
+    const currency = pricing?.currency || "INR";
+    
+    // Duration in hours
+    const startH = parseInt(selectedSlot.startTime.split(":")[0]);
+    const startM = parseInt(selectedSlot.startTime.split(":")[1]);
+    const endH = parseInt(endTime.split(":")[0]);
+    const endM = parseInt(endTime.split(":")[1]);
+    const durationHours = (endH + endM / 60) - (startH + startM / 60);
+    
+    const estimatedKWh = station ? parseFloat((station.chargingSpeed * durationHours).toFixed(2)) : 0;
+    const totalCost = parseFloat((estimatedKWh * pricePerKWh).toFixed(2));
+    const platformFee = station ? parseFloat(((totalCost * station.platformFee) / 100).toFixed(2)) : 0;
+    const grandTotal = parseFloat((totalCost + platformFee).toFixed(2));
+    const advancePayment = parseFloat((grandTotal * 0.20).toFixed(2));
+
     setBooking(true);
+
     try {
-      const r = await BookingsAPI.create({
+      await BookingsAPI.validate({
         station: stationId,
         connectorType: connector,
         date,
@@ -110,13 +156,84 @@ function StationDetail() {
         endTime,
         vehicleNumber,
       });
-      const b = r.data?.data;
-      toast.success("Booking confirmed!", { description: b?.otp });
-      nav({ to: "/bookings" });
     } catch (e) {
-      toast.error(getApiError(e, "Booking failed"));
-    } finally {
+      toast.error(getApiError(e, "Slot no longer available or overlapping booking exists."));
       setBooking(false);
+      return;
+    }
+
+    const executeBooking = async () => {
+      try {
+        const r = await BookingsAPI.create({
+          station: stationId,
+          connectorType: connector,
+          date,
+          startTime: selectedSlot.startTime,
+          endTime,
+          vehicleNumber,
+        });
+        const b = r.data?.data;
+        toast.success("Booking confirmed!", { description: b?.otp });
+        nav({ to: "/bookings" });
+      } catch (e) {
+        toast.error(getApiError(e, "Booking failed"));
+        setBooking(false);
+      }
+    };
+
+    if (advancePayment > 0) {
+      try {
+        const orderRes = await PaymentAPI.createOrder({ amount: advancePayment, currency });
+        const order = orderRes.data;
+
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || "",
+          amount: order.amount,
+          currency: order.currency,
+          name: "EvGenee Charging",
+          description: "Booking at " + station?.name,
+          order_id: order.id,
+          handler: async function (response: any) {
+            try {
+              await PaymentAPI.updatePayment({
+                orderId: order.id,
+                paymentId: response.razorpay_payment_id,
+                status: "paid"
+              });
+              await executeBooking();
+            } catch (err) {
+              toast.error("Failed to verify payment");
+              setBooking(false);
+            }
+          },
+          prefill: {
+            name: "EvGenee User",
+            email: "user@example.com",
+            contact: "9999999999"
+          },
+          theme: {
+            color: "#22c55e"
+          },
+          modal: {
+            ondismiss: function() {
+              toast.error("Payment cancelled");
+              setBooking(false);
+            }
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on("payment.failed", function (response: any) {
+          toast.error("Payment Failed: " + response.error.description);
+          setBooking(false);
+        });
+        rzp.open();
+      } catch (e) {
+        toast.error(getApiError(e, "Failed to initiate payment"));
+        setBooking(false);
+      }
+    } else {
+      await executeBooking();
     }
   };
 
@@ -237,27 +354,78 @@ function StationDetail() {
               disabled={booking || !selectedSlot}
               className="bg-[image:var(--gradient-primary)] text-primary-foreground shadow-[var(--shadow-glow)] font-semibold"
             >
-              {booking ? <Loader2 className="h-4 w-4 animate-spin" /> : "BOOK CHARGER"}
+              {booking ? <Loader2 className="h-4 w-4 animate-spin" /> : "PAY 20% ADVANCE"}
             </Button>
           </div>
         </div>
 
         {/* Reviews */}
-        {station.reviews?.length > 0 && (
-          <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)] space-y-3">
+        <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)] space-y-4">
+          <div className="flex items-center justify-between">
             <h3 className="font-bold">Reviews</h3>
-            {station.reviews.slice(0, 5).map((r, i) => (
+            {avgRating > 0 && (
+              <div className="flex items-center gap-1 text-warning text-sm font-bold">
+                <Star className="h-4 w-4 fill-current" />
+                {avgRating.toFixed(1)}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            {station.reviews?.slice(0, 5).map((r, i) => (
               <div key={i} className="border-b border-border last:border-0 pb-2 last:pb-0">
-                <div className="flex items-center gap-1 text-warning">
+                <div className="flex items-center gap-1 text-warning mb-1">
                   {Array.from({ length: 5 }).map((_, k) => (
-                    <Star key={k} className={`h-3.5 w-3.5 ${k < r.rating ? "fill-current" : "opacity-30"}`} />
+                    <Star key={k} className={`h-3 w-3 ${k < r.rating ? "fill-current" : "opacity-30"}`} />
                   ))}
                 </div>
-                <p className="text-sm mt-1">{r.comment}</p>
+                <p className="text-sm">{r.comment}</p>
               </div>
             ))}
+            {(!station.reviews || station.reviews.length === 0) && (
+              <p className="text-sm text-muted-foreground text-center py-2">No reviews yet. Be the first!</p>
+            )}
           </div>
-        )}
+
+          {/* Add Review Form */}
+          <div className="pt-4 border-t border-border">
+            <p className="text-sm font-bold mb-3">Leave a Review</p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setReviewRating(star)}
+                    className="transition-transform active:scale-90"
+                  >
+                    <Star
+                      className={`h-6 w-6 ${
+                        star <= reviewRating ? "text-warning fill-current" : "text-muted-foreground opacity-30"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Share your experience..."
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  className="bg-accent/50 border-0 focus-visible:ring-1"
+                />
+                <Button
+                  size="icon"
+                  onClick={submitReview}
+                  disabled={reviewing || !reviewComment.trim()}
+                  className="shrink-0 bg-[image:var(--gradient-primary)]"
+                >
+                  {reviewing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <Link to="/bookings" className="block text-center text-sm text-primary font-semibold py-2">View my bookings →</Link>
       </div>
