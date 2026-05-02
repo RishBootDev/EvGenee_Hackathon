@@ -16,17 +16,17 @@ export function BottomNav() {
 
   const items = [
     { to: "/", label: "Map", icon: Map },
-    { to: "/bookings", label: "Bookings", icon: Calendar },
+    ...(!isOwner ? [{ to: "/bookings", label: "Bookings", icon: Calendar }] : []),
     ...(isOwner ? [{ to: "/owner", label: "Owner", icon: LayoutDashboard }] : []),
     { to: "/profile", label: "Profile", icon: User },
-  ] as const;
+  ];
 
   return (
     <nav
       className="fixed bottom-0 inset-x-0 z-[1000] bg-[#000814]/95 backdrop-blur-xl border-t border-white/8"
       style={{ paddingBottom: "var(--safe-bottom)" }}
     >
-      <div className="max-w-2xl mx-auto grid grid-cols-4 px-2">
+      <div className={cn("max-w-2xl mx-auto grid px-2", items.length === 4 ? "grid-cols-4" : "grid-cols-3")}>
         {items.map(({ to, label, icon: Icon }) => {
           const active = loc.pathname === to || (to !== "/" && loc.pathname.startsWith(to));
           return (
