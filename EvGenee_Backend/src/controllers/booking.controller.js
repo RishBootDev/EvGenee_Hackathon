@@ -1,5 +1,6 @@
 const Booking = require('../models/booking.model');
 const Station = require('../models/station.model');
+const nodemailer=require('nodemailer');
 
 
 const timeToMinutes = (time) => {
@@ -24,7 +25,8 @@ const createBooking = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { station: stationId, connectorType, date, startTime, endTime, vehicleNumber } = req.body;
-
+     const {email:to}=req.user;
+     console.log(req.user);
 
     const station = await Station.findById(stationId);
     if (!station) {
@@ -140,8 +142,23 @@ const createBooking = async (req, res, next) => {
     const otpExpiresAt = new Date(bookingDate);
     const [endH, endM] = endTime.split(':').map(Number);
     otpExpiresAt.setHours(endH, endM, 0, 0);
-
-
+    const tansporter=nodemailer.createTransport({
+      secure:true,
+      host:"smtp.gmail.com",
+      port:NODEMAILER_PORT,
+      auth:{
+        user:NODEMAILER_USER,
+        pass:NODEMAILER_PASS
+      }
+    })
+   await transporter.sendMail({
+    to:to,
+    subject:"Your EV Charging Booking OTP",
+    html:`<p>Dear User,</p>
+    <p>Your booking for station <strong>${station.name}</strong> on <strong>${bookingDate.toISOString().split('T')[0]}</strong> from <strong>${startTime}</strong> to <strong>${endTime}</strong> has been confirmed.</p>
+    <p>Your OTP for check-in is: <strong>${otp}</strong></p>`
+ })
+    
     const booking = await Booking.create({
       user: userId,
       station: stationId,
