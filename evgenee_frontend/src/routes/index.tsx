@@ -10,13 +10,36 @@ import { LandingPage } from "@/components/LandingPage";
 import { Drawer } from "vaul";
 import { useNavigate } from "@tanstack/react-router";
 
+/** Haversine formula — returns distance in kilometres between two lat/lng points */
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** Attach accurate distanceKm to every station based on the user's real GPS location */
+function attachDistances(stations: Station[], userLoc: [number, number] | null): Station[] {
+  if (!userLoc) return stations;
+  return stations.map((s) => {
+    const [sLng, sLat] = s.location.coordinates; // GeoJSON is [lng, lat]
+    return { ...s, distanceKm: haversineKm(userLoc[0], userLoc[1], sLat, sLng) };
+  });
+}
+
 export const Route = createFileRoute("/")({ component: HomePage });
 
 const DEFAULT_CENTER: [number, number] = [28.6139, 77.209];
 const NAV_H = 64;
 
 function HomePage() {
-  const { isAuthed, loading } = useAuth();
+  const { isAuthed, loading, isOwner } = useAuth();
   const navigate = useNavigate();
 
   const [center, setCenter] = useState<[number, number]>(() => {
@@ -32,7 +55,8 @@ function HomePage() {
     sessionStorage.setItem("mapCenter", JSON.stringify(c));
   }, []);
 
-  const [stations, setStations] = useState<Station[]>(() => {
+  // Raw stations from the API (no distance attached yet)
+  const [rawStations, setRawStations] = useState<Station[]>(() => {
     if (typeof window !== "undefined") {
       const s = sessionStorage.getItem("stationsCache");
       if (s) { try { return JSON.parse(s) as Station[]; } catch {} }
@@ -43,34 +67,60 @@ function HomePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(() => {
+    // Restore last known location from session so the dot never disappears on re-mount
+    if (typeof window !== "undefined") {
+      const s = sessionStorage.getItem("userLocation");
+      if (s) { try { return JSON.parse(s) as [number, number]; } catch {} }
+    }
+    return null;
+  });
   const [locating, setLocating] = useState(false);
   const [snap, setSnap] = useState<string | number | null>("35vh");
+
+  // Stations with accurate distanceKm computed client-side from user's GPS.
+  // Recomputes automatically whenever userLocation updates — no stale 0m shown.
+  const stations = useMemo(() => attachDistances(rawStations, userLocation), [rawStations, userLocation]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const locate = useCallback(() => {
-    if (!navigator.geolocation) { toast.error("Geolocation not supported"); return; }
+  // ── Continuous GPS tracking with watchPosition ──────────────────────────────
+  // Runs for the lifetime of the authenticated session. Location is persisted
+  // to sessionStorage so it survives re-mounts without asking for GPS again.
+  useEffect(() => {
+    if (!isAuthed || !navigator.geolocation) return;
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
+    const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const c: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setUserLocation(c);
-        setCenter(c);
-        sessionStorage.setItem("mapCenter", JSON.stringify(c));
+        sessionStorage.setItem("userLocation", JSON.stringify(c));
+        // On the very first fix, fly the map to the user's location
+        if (!sessionStorage.getItem("mapCenter")) {
+          setCenter(c);
+          sessionStorage.setItem("mapCenter", JSON.stringify(c));
+        }
         setLocating(false);
-        toast.success("Location found");
       },
       (err) => {
-        toast.error(err.code === err.PERMISSION_DENIED ? "Location permission denied" : "Could not get location");
         setLocating(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          toast.error("Location permission denied");
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
-  }, []);
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [isAuthed]);
 
-  useEffect(() => {
-    if (isAuthed && !sessionStorage.getItem("mapCenter")) locate();
-  }, [isAuthed, locate]);
+  // ── Locate FAB: instantly re-center map to current known location ────────────
+  const locate = useCallback(() => {
+    if (userLocation) {
+      setCenter(userLocation);
+      sessionStorage.setItem("mapCenter", JSON.stringify(userLocation));
+    } else {
+      toast.error("Waiting for location — please allow GPS access");
+    }
+  }, [userLocation]);
 
   useEffect(() => {
     if (!isAuthed) return;
@@ -80,10 +130,12 @@ function HomePage() {
         setLoadingStations(true);
       }
       try {
-        const r = await StationsAPI.nearby({ lat: center[0], lng: center[1], maxDistance: 50000 });
+        const r = isOwner
+          ? await StationsAPI.myStations()
+          : await StationsAPI.nearby({ lat: center[0], lng: center[1], maxDistance: 50000 });
         if (!cancel) {
-          const newStations = r.data?.data ?? [];
-          setStations(newStations);
+          const newStations = Array.isArray(r.data) ? r.data : (r.data?.data ?? []);
+          setRawStations(newStations);
           sessionStorage.setItem("stationsCache", JSON.stringify(newStations));
         }
       } catch (e) {
@@ -95,7 +147,7 @@ function HomePage() {
       }
     })();
     return () => { cancel = true; };
-  }, [center, isAuthed]);
+  }, [center, isAuthed, isOwner]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

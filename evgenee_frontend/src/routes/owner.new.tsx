@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { LocationPicker } from "@/components/LocationPicker";
 import { ArrowLeft, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { getApiError } from "@/lib/utils";
@@ -100,10 +101,10 @@ function NewStation() {
 
   return (
     <div className="max-w-2xl mx-auto p-4 pb-8" style={{ paddingTop: "calc(var(--safe-top) + 1.5rem)" }}>
-      <button onClick={() => nav({ to: "/owner" })} className="mb-4 flex items-center gap-1 text-sm font-semibold text-muted-foreground">
+      <button onClick={() => nav({ to: "/owner" })} className="mb-4 flex items-center gap-1 text-sm font-semibold text-white/60 hover:text-white transition-colors">
         <ArrowLeft className="h-4 w-4" />Back
       </button>
-      <h1 className="text-2xl font-bold mb-4">Add Station</h1>
+      <h1 className="text-2xl font-black text-white mb-4">Add Station</h1>
 
       <form onSubmit={submit} className="space-y-4">
         <Section title="Basic">
@@ -127,9 +128,14 @@ function NewStation() {
             <Field label="Country"><Input required value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} /></Field>
             <Field label="Postal Code"><Input required value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} /></Field>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Latitude"><Input required value={form.lat} onChange={(e) => setForm({ ...form, lat: e.target.value })} /></Field>
-            <Field label="Longitude"><Input required value={form.lng} onChange={(e) => setForm({ ...form, lng: e.target.value })} /></Field>
+          <div className="pt-2">
+            <Label className="block mb-2">Pin on Map</Label>
+            <LocationPicker 
+              lat={parseFloat(form.lat) || 0} 
+              lng={parseFloat(form.lng) || 0} 
+              onChange={(lat, lng) => setForm(f => ({ ...f, lat: lat.toString(), lng: lng.toString() }))} 
+            />
+            {(!form.lat || !form.lng) && <p className="text-xs text-destructive mt-1">Please set a location on the map</p>}
           </div>
           <Button type="button" variant="outline" onClick={useMyLocation} className="w-full">Use my current location</Button>
         </Section>
@@ -190,7 +196,7 @@ function NewStation() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)] space-y-3">
-      <h3 className="font-bold text-sm">{title}</h3>
+      <h3 className="font-bold text-sm text-primary">{title}</h3>
       {children}
     </div>
   );
