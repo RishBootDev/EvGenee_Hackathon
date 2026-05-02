@@ -1,6 +1,8 @@
 const Booking = require('../models/booking.model');
 const Station = require('../models/station.model');
+const PlatformSettings = require('../models/platformSettings.model');
 const nodemailer=require('nodemailer');
+const { NODEMAILER_USER, NODEMAILER_PASS, NODEMAILER_PORT } = require('../config/config');  
 
 
 const timeToMinutes = (time) => {
@@ -134,7 +136,11 @@ const createBooking = async (req, res, next) => {
     const durationHours = durationMinutes / 60;
     const estimatedKWh = parseFloat((station.chargingSpeed * durationHours).toFixed(2));
     const totalCost = parseFloat((estimatedKWh * pricePerKWh).toFixed(2));
-    const platformFee = parseFloat(((totalCost * station.platformFee) / 100).toFixed(2));
+    
+    // Fetch platform fee from admin settings
+    const settings = await PlatformSettings.findOne();
+    const platformFeePercentage = settings ? settings.platformFee : 5;
+    const platformFee = parseFloat(((totalCost * platformFeePercentage) / 100).toFixed(2));
     const grandTotal = parseFloat((totalCost + platformFee).toFixed(2));
 
 

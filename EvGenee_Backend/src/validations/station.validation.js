@@ -68,10 +68,6 @@ const addStationValidation = [
         .optional()
         .isIn(['USD', 'EUR', 'INR']).withMessage('Currency must be one of: USD, EUR, INR'),
 
-    body('platformFee')
-        .optional()
-        .isFloat({ min: 0, max: 100 }).withMessage('Platform fee must be between 0 and 100'),
-
     body('isOpen')
         .optional()
         .isBoolean().withMessage('isOpen must be a boolean'),

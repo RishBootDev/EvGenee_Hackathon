@@ -62,10 +62,6 @@ const stationSchema = new mongoose.Schema({
     ],
     required: true,
   },
-  platformFee: {
-    type: Number,
-    default: 5, 
-  },
   isOpen: {
     type: Boolean,
     default: true,
