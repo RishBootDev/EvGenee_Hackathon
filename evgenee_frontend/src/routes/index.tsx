@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { StationsAPI, type Station } from "@/lib/api";
 import { StationsMap } from "@/components/StationsMap";
-import { Badge } from "@/components/ui/badge";
 import { Search, Zap, Loader2, LocateFixed, Plug, X, ChevronRight, MapPin } from "lucide-react";
 import { getApiError } from "@/lib/utils";
 import { toast } from "sonner";
@@ -14,7 +13,6 @@ import { useNavigate } from "@tanstack/react-router";
 export const Route = createFileRoute("/")({ component: HomePage });
 
 const DEFAULT_CENTER: [number, number] = [28.6139, 77.209];
-// Bottom nav is ~64px; drawer sits above it
 const NAV_H = 64;
 
 function HomePage() {
@@ -78,7 +76,6 @@ function HomePage() {
     if (!isAuthed) return;
     let cancel = false;
     (async () => {
-      // Show loading only if we have no cached data
       if (!sessionStorage.getItem("stationsCache")) {
         setLoadingStations(true);
       }
@@ -110,7 +107,6 @@ function HomePage() {
     );
   }, [stations, search]);
 
-  // Close dropdown on outside interaction
   useEffect(() => {
     const close = (e: Event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -135,12 +131,11 @@ function HomePage() {
   );
   if (!isAuthed) return <LandingPage />;
 
-  // Button row bottom position — above drawer (35vh) and above nav
   const fabBottom = `calc(${NAV_H}px + 37vh)`;
 
   return (
     <>
-      {/* ── FULL-SCREEN MAP (z:0) ── */}
+      {/* ── FULL-SCREEN MAP ── */}
       <div className="fixed inset-0 z-0">
         <StationsMap
           center={center}
@@ -154,9 +149,7 @@ function HomePage() {
         />
       </div>
 
-      {/* ── FLOATING SEARCH BAR (fixed, z:9999 — above everything including Leaflet) ──
-          Using `fixed` instead of `absolute` ensures it's in the root stacking context,
-          completely independent of Leaflet's DOM and event capture. ── */}
+      {/* ── FLOATING SEARCH BAR + NEARBY CHIP ── */}
       <div
         ref={dropdownRef}
         style={{
@@ -166,22 +159,34 @@ function HomePage() {
           right: 0,
           zIndex: 9999,
           padding: "calc(env(safe-area-inset-top, 0px) + 12px) 12px 0",
-          pointerEvents: "none",
+          pointerEvents: "auto",
         }}
       >
-        <div style={{ maxWidth: 540, margin: "0 auto", paddingRight: 90, pointerEvents: "auto" }}>
+        {/* Flex row: search + nearby chip always side by side */}
+        <div style={{
+          maxWidth: 600,
+          margin: "0 auto",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}>
           {/* Search pill */}
           <div style={{
-            display: "flex", alignItems: "center", gap: 8,
+            flex: 1,
+            minWidth: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
             background: "rgba(0,8,20,0.90)",
             backdropFilter: "blur(16px)",
             WebkitBackdropFilter: "blur(16px)",
-            borderRadius: 16, border: "1px solid rgba(0,0,0,0.08)",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.14)",
-            padding: "0 12px 0 16px", height: 48,
+            borderRadius: 16,
+            border: "1px solid rgba(255,255,255,0.1)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+            padding: "0 12px 0 16px",
+            height: 48,
           }}>
             <Search size={16} color="rgba(255,255,255,0.4)" style={{ flexShrink: 0 }} />
-            {/* Plain <input> — no component wrappers that might interfere on mobile */}
             <input
               type="search"
               autoComplete="off"
@@ -193,17 +198,22 @@ function HomePage() {
               onFocus={() => { setShowDropdown(!!search); setSnap("70px"); }}
               onBlur={() => setTimeout(() => setSnap("35vh"), 250)}
               style={{
-                flex: 1, border: "none", outline: "none",
-                background: "transparent", fontSize: 16,
-                color: "#ffffff", minWidth: 0,
-                // Critical for mobile Chrome — prevents browser from ignoring this input
+                flex: 1,
+                border: "none",
+                outline: "none",
+                background: "transparent",
+                fontSize: 15,
+                color: "#ffffff",
+                minWidth: 0,
                 WebkitAppearance: "none",
+                touchAction: "manipulation",
+                cursor: "text",
               }}
             />
             {search ? (
               <button
                 onPointerDown={(e) => { e.preventDefault(); setSearch(""); setShowDropdown(false); }}
-                style={{ border: "none", background: "none", padding: 6, cursor: "pointer", color: "#94a3b8", display: "flex", borderRadius: 8 }}
+                style={{ border: "none", background: "none", padding: 6, cursor: "pointer", color: "rgba(255,255,255,0.4)", display: "flex", borderRadius: 8 }}
               >
                 <X size={16} />
               </button>
@@ -212,97 +222,111 @@ function HomePage() {
             ) : null}
           </div>
 
-          {/* Dropdown */}
-          {showDropdown && search.trim() && (
-            <div style={{
-              marginTop: 6, background: "rgba(255,255,255,0.98)",
-              borderRadius: 16, border: "1px solid rgba(0,0,0,0.07)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.14)",
-              overflow: "hidden", maxHeight: 280, overflowY: "auto",
-            }}>
-              {filtered.length === 0 ? (
-                <div style={{ padding: "24px 16px", textAlign: "center", color: "#94a3b8" }}>
-                  <Plug size={28} style={{ margin: "0 auto 8px", opacity: 0.4 }} />
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 500 }}>No stations found</p>
-                </div>
-              ) : filtered.slice(0, 8).map((s) => {
-                const avail = s.isOpen && s.availablePorts > 0;
-                return (
-                  <button
-                    key={s._id}
-                    onPointerDown={() => { handleSelect(s); setSearch(s.name); setShowDropdown(false); }}
-                    style={{
-                      width: "100%", display: "flex", alignItems: "center", gap: 12,
-                      padding: "10px 14px", background: "none", border: "none",
-                      borderBottom: "1px solid rgba(0,0,0,0.05)", cursor: "pointer",
-                      textAlign: "left", transition: "background 0.12s",
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "#f8fafc")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "none")}
-                  >
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: avail ? "#f0fdf4" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Zap size={16} color={avail ? "#16a34a" : "#94a3b8"} fill={avail ? "#16a34a" : "#94a3b8"} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontWeight: 600, fontSize: 13, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</p>
-                      <p style={{ margin: "2px 0 0", fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {s.address?.street}, {s.address?.city}
-                      </p>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
-                      {s.distanceKm !== undefined && (
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#16a34a", background: "#f0fdf4", padding: "1px 6px", borderRadius: 6 }}>
-                          {s.distanceKm < 1 ? `${(s.distanceKm * 1000).toFixed(0)}m` : `${s.distanceKm.toFixed(1)}km`}
-                        </span>
-                      )}
-                      <span style={{ fontSize: 10, fontWeight: 600, color: avail ? "#16a34a" : "#94a3b8" }}>
-                        {avail ? `${s.availablePorts} free` : s.isOpen ? "Full" : "Closed"}
-                      </span>
-                    </div>
-                    <ChevronRight size={14} color="#cbd5e1" />
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          {/* Nearby chip - always on right, never overlaps */}
+          <div style={{
+            flexShrink: 0,
+            background: "rgba(0,8,20,0.90)",
+            border: "1px solid rgba(34,197,94,0.3)",
+            borderRadius: 16,
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+            padding: "0 12px",
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            height: 48,
+            fontSize: 13,
+            fontWeight: 700,
+            color: "#22c55e",
+            whiteSpace: "nowrap",
+          }}>
+            <Zap size={13} color="#22c55e" fill="#22c55e" />
+            {loadingStations ? "…" : `${filtered.length} nearby`}
+          </div>
         </div>
+
+        {/* Dropdown */}
+        {showDropdown && search.trim() && (
+          <div style={{
+            maxWidth: 600,
+            margin: "6px auto 0",
+            background: "rgba(10,22,40,0.97)",
+            borderRadius: 16,
+            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+            overflow: "hidden",
+            maxHeight: 280,
+            overflowY: "auto",
+          }}>
+            {filtered.length === 0 ? (
+              <div style={{ padding: "24px 16px", textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
+                <Plug size={28} style={{ margin: "0 auto 8px", opacity: 0.4 }} />
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 500 }}>No stations found</p>
+              </div>
+            ) : filtered.slice(0, 8).map((s) => {
+              const avail = s.isOpen && s.availablePorts > 0;
+              return (
+                <button
+                  key={s._id}
+                  onPointerDown={() => { handleSelect(s); setSearch(s.name); setShowDropdown(false); }}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 12,
+                    padding: "10px 14px", background: "none", border: "none",
+                    borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: "pointer",
+                    textAlign: "left", transition: "background 0.12s",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                >
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: avail ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Zap size={16} color={avail ? "#22c55e" : "rgba(255,255,255,0.3)"} fill={avail ? "#22c55e" : "rgba(255,255,255,0.3)"} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: 13, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</p>
+                    <p style={{ margin: "2px 0 0", fontSize: 11, color: "rgba(255,255,255,0.35)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {s.address?.street}, {s.address?.city}
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
+                    {s.distanceKm !== undefined && (
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", background: "rgba(34,197,94,0.1)", padding: "1px 6px", borderRadius: 6 }}>
+                        {s.distanceKm < 1 ? `${(s.distanceKm * 1000).toFixed(0)}m` : `${s.distanceKm.toFixed(1)}km`}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 10, fontWeight: 600, color: avail ? "#22c55e" : "rgba(255,255,255,0.3)" }}>
+                      {avail ? `${s.availablePorts} free` : s.isOpen ? "Full" : "Closed"}
+                    </span>
+                  </div>
+                  <ChevronRight size={14} color="rgba(255,255,255,0.2)" />
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* ── FAB: LOCATE + COUNT (fixed, above drawer) ── */}
+      {/* ── FAB: LOCATE ── */}
       <button
         onClick={locate}
         aria-label="My location"
         style={{
           position: "fixed", right: 16, bottom: fabBottom, zIndex: 600,
           width: 48, height: 48, borderRadius: "50%",
-          background: "#fff", border: "none",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
+          background: "rgba(0,8,20,0.90)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
           display: "flex", alignItems: "center", justifyContent: "center",
           cursor: "pointer", transition: "transform 0.15s",
         }}
         onMouseDown={e => (e.currentTarget.style.transform = "scale(0.93)")}
         onMouseUp={e => (e.currentTarget.style.transform = "scale(1)")}
       >
-        {locating ? <Loader2 size={20} className="animate-spin text-primary" /> : <LocateFixed size={20} color="#16a34a" />}
+        {locating ? <Loader2 size={20} className="animate-spin text-primary" /> : <LocateFixed size={20} color="#22c55e" />}
       </button>
 
-      <div style={{
-        position: "fixed", right: 16, top: "calc(env(safe-area-inset-top, 0px) + 12px)", zIndex: 9999,
-        background: "rgba(0,8,20,0.90)",
-        border: "1px solid rgba(34,197,94,0.3)",
-        borderRadius: 24,
-        boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        padding: "0 14px", display: "flex", alignItems: "center", gap: 6,
-        fontSize: 13, fontWeight: 700, color: "#22c55e",
-        height: 48,
-        }}>
-        <Zap size={14} color="#22c55e" fill="#22c55e" />
-        {loadingStations ? "Searching…" : `${filtered.length} nearby`}
-      </div>
-
-      {/* ── MOBILE BOTTOM DRAWER (z:999, sits above map, below top-fixed elements) ── */}
+      {/* ── MOBILE BOTTOM DRAWER ── */}
       <div className="md:hidden">
         <Drawer.Root
           open={true} dismissible={false} modal={false}
@@ -317,36 +341,31 @@ function HomePage() {
                 position: "fixed", left: 0, right: 0,
                 bottom: NAV_H, zIndex: 999,
                 maxHeight: "82vh",
-                background: "#fff",
+                background: "rgba(10,22,40,0.97)",
                 borderRadius: "24px 24px 0 0",
-                boxShadow: "0 -4px 32px rgba(0,0,0,0.1)",
-                borderTop: "1px solid rgba(0,0,0,0.06)",
+                boxShadow: "0 -4px 32px rgba(0,0,0,0.3)",
+                borderTop: "1px solid rgba(255,255,255,0.08)",
                 display: "flex", flexDirection: "column",
               }}
             >
-              {/* Handle */}
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e2e8f0", margin: "10px auto 4px", flexShrink: 0 }} />
-
-              {/* Title */}
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.15)", margin: "10px auto 4px", flexShrink: 0 }} />
               <div style={{ padding: "4px 16px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
                 <div>
-                  <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: "#1e293b" }}>Nearby Stations</p>
-                  <p style={{ margin: "2px 0 0", fontSize: 11, color: "#94a3b8" }}>Swipe up to browse all</p>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: "white" }}>Nearby Stations</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Swipe up to browse all</p>
                 </div>
-                <span style={{ background: "#f0fdf4", color: "#16a34a", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 700 }}>
+                <span style={{ background: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 700 }}>
                   {filtered.length} found
                 </span>
               </div>
-
-              {/* List */}
               <div style={{ flex: 1, overflowY: "auto", padding: "0 12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
                 {loadingStations ? (
-                  <div style={{ padding: "32px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, color: "#94a3b8" }}>
+                  <div style={{ padding: "32px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, color: "rgba(255,255,255,0.3)" }}>
                     <Loader2 size={28} className="animate-spin text-primary" />
                     <p style={{ margin: 0, fontSize: 13 }}>Finding stations…</p>
                   </div>
                 ) : filtered.length === 0 ? (
-                  <div style={{ padding: "32px 0", textAlign: "center", color: "#94a3b8" }}>
+                  <div style={{ padding: "32px 0", textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
                     <Plug size={28} style={{ margin: "0 auto 8px", opacity: 0.4 }} />
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 500 }}>No stations found</p>
                   </div>
@@ -376,38 +395,38 @@ function MobileCard({ station, isSelected, onSelect }: { station: Station; isSel
       onClick={onSelect}
       style={{
         width: "100%", textAlign: "left", padding: 12,
-        background: isSelected ? "#f0fdf4" : "#fff",
-        border: `1.5px solid ${isSelected ? "#86efac" : "rgba(0,0,0,0.07)"}`,
+        background: isSelected ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.04)",
+        border: `1.5px solid ${isSelected ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.08)"}`,
         borderRadius: 16, display: "flex", alignItems: "center", gap: 12,
         cursor: "pointer", transition: "all 0.15s",
-        boxShadow: isSelected ? "0 0 0 3px rgba(34,197,94,0.1)" : "0 1px 4px rgba(0,0,0,0.05)",
+        boxShadow: isSelected ? "0 0 0 3px rgba(34,197,94,0.1)" : "none",
       }}
     >
-      <div style={{ width: 52, height: 52, borderRadius: 14, background: avail ? "#f0fdf4" : "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative", overflow: "hidden" }}>
+      <div style={{ width: 52, height: 52, borderRadius: 14, background: avail ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative", overflow: "hidden" }}>
         {station.Images?.[0]
           ? <img src={station.Images[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          : <Zap size={22} color={avail ? "#16a34a" : "#94a3b8"} fill={avail ? "#16a34a" : "#94a3b8"} />}
-        <span style={{ position: "absolute", top: 3, right: 3, width: 10, height: 10, borderRadius: "50%", background: avail ? "#22c55e" : station.isOpen ? "#fbbf24" : "#94a3b8", border: "2px solid #fff" }} />
+          : <Zap size={22} color={avail ? "#22c55e" : "rgba(255,255,255,0.3)"} fill={avail ? "#22c55e" : "rgba(255,255,255,0.3)"} />}
+        <span style={{ position: "absolute", top: 3, right: 3, width: 10, height: 10, borderRadius: "50%", background: avail ? "#22c55e" : station.isOpen ? "#fbbf24" : "rgba(255,255,255,0.2)", border: "2px solid rgba(10,22,40,0.9)" }} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{station.name}</p>
-        <p style={{ margin: "3px 0 0", fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 3 }}>
+        <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{station.name}</p>
+        <p style={{ margin: "3px 0 0", fontSize: 11, color: "rgba(255,255,255,0.35)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 3 }}>
           <MapPin size={10} style={{ flexShrink: 0 }} /> {station.address?.street}, {station.address?.city}
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#16a34a" }}>{sym}{minPrice}/kWh</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e" }}>{sym}{minPrice}/kWh</span>
           {avgRating && <span style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b" }}>★ {avgRating}</span>}
-          <span style={{ fontSize: 11, fontWeight: 700, color: avail ? "#16a34a" : "#94a3b8" }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: avail ? "#22c55e" : "rgba(255,255,255,0.3)" }}>
             {avail ? `${station.availablePorts} free` : station.isOpen ? "Full" : "Closed"}
           </span>
           {station.distanceKm !== undefined && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#16a34a", background: "#f0fdf4", padding: "1px 6px", borderRadius: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", background: "rgba(34,197,94,0.1)", padding: "1px 6px", borderRadius: 6 }}>
               {station.distanceKm < 1 ? `${(station.distanceKm * 1000).toFixed(0)}m` : `${station.distanceKm.toFixed(1)}km`}
             </span>
           )}
         </div>
       </div>
-      <ChevronRight size={16} color={isSelected ? "#16a34a" : "#cbd5e1"} style={{ flexShrink: 0 }} />
+      <ChevronRight size={16} color={isSelected ? "#22c55e" : "rgba(255,255,255,0.2)"} style={{ flexShrink: 0 }} />
     </button>
   );
 }
