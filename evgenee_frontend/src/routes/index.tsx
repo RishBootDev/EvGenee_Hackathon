@@ -166,7 +166,7 @@ function HomePage() {
           right: 0,
           zIndex: 9999,
           padding: "calc(env(safe-area-inset-top, 0px) + 12px) 12px 0",
-          pointerEvents: "none",
+          pointerEvents: "auto",
         }}
       >
         <div style={{ maxWidth: 540, margin: "0 auto", paddingRight: 90, pointerEvents: "auto" }}>
@@ -198,6 +198,7 @@ function HomePage() {
                 color: "#ffffff", minWidth: 0,
                 // Critical for mobile Chrome — prevents browser from ignoring this input
                 WebkitAppearance: "none",
+                touchAction: "manipulation",
               }}
             />
             {search ? (
