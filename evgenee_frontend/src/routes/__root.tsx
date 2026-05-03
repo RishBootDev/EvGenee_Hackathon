@@ -32,6 +32,7 @@ export const Route = createRootRoute({
 });
 
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { VoiceAssistant } from "@/components/VoiceAssistant";
 
 function RootComponent() {
   return (
@@ -41,6 +42,7 @@ function RootComponent() {
       </div>
       <BottomNav />
       <InstallPrompt />
+      <VoiceAssistant />
       <Toaster position="top-center" />
     </AuthProvider>
   );
