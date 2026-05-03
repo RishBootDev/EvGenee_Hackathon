@@ -42,7 +42,9 @@ app.use('/api/v1/bookings', bookingRoutes);
 app.use('/api/v1/platform-settings', platformSettingsRoutes);
 
 const paymentRoutes = require('./routes/payment.route');
+const aiRoutes = require('./routes/ai.routes');
 app.use('/api/v1/payment', paymentRoutes);
+app.use('/api/v1/ai', aiRoutes);
 
 app.use((req, res) => {
     res.status(404).json({

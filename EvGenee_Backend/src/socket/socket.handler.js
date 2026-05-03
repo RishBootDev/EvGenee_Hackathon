@@ -1,3 +1,4 @@
+const { processVoiceChat } = require('../services/langgraph.service');
 
 const initializeSocket = (io) => {
     io.on('connection', (socket) => {
@@ -26,6 +27,19 @@ const initializeSocket = (io) => {
     
         socket.on('ping', () => {
             socket.emit('pong', { timestamp: new Date().toISOString() });
+        });
+
+       
+        socket.on('ai:voice_chat', async (data) => {
+            try {
+                const { message, threadId } = data;
+                console.log(`[Socket.IO] AI Chat request from ${socket.id}`);
+                const response = await processVoiceChat(message, threadId || socket.id);
+                socket.emit('ai:voice_response', { success: true, response, threadId: threadId || socket.id });
+            } catch (error) {
+                console.error("[Socket.IO] AI Chat error:", error);
+                socket.emit('ai:voice_response', { success: false, error: "Failed to process chat" });
+            }
         });
 
         
