@@ -254,19 +254,33 @@ export default function StationsMapInner({
     setCurrentStepIdx(0);
   }, []);
 
+  const userLocRef = useRef<[number, number] | null>(userLocation ?? null);
+  useEffect(() => { userLocRef.current = userLocation ?? null; }, [userLocation]);
+
   const handleStart = useCallback(() => {
     setPanelVisible(false); // Collapse panel, keep route on map
     setCurrentStepIdx(0);
-    if (userLocation && mapRef.current) {
+    const loc = userLocRef.current;
+    if (loc && mapRef.current) {
       // Zoom in to user location to start navigation view
-      mapRef.current.flyTo(userLocation, 17, { duration: 1.2 });
+      mapRef.current.flyTo(loc, 17, { duration: 1.2 });
     }
-  }, [userLocation]);
+  }, []); // no userLocation dep — uses ref
 
   // Active Navigation tracking: smoothly pan to follow user and update step
+  // MOBILE FIX: Only pan if user moved > 10 m since last pan to avoid
+  // continuous animation on mobile GPS jitter.
+  const lastPanLocRef = useRef<[number, number] | null>(null);
   useEffect(() => {
     if (!panelVisible && targetStation && userLocation && mapRef.current) {
-      mapRef.current.panTo(userLocation, { animate: true, duration: 1 });
+      const prev = lastPanLocRef.current;
+      const moved = !prev ||
+        Math.abs(userLocation[0] - prev[0]) > 0.00009 || // ~10 m latitude
+        Math.abs(userLocation[1] - prev[1]) > 0.00013;   // ~10 m longitude
+      if (moved) {
+        lastPanLocRef.current = userLocation;
+        mapRef.current.panTo(userLocation, { animate: true, duration: 1 });
+      }
 
       const selectedRoute = routes[selectedRouteIdx];
       if (selectedRoute && selectedRoute.steps.length > 0) {
@@ -296,19 +310,25 @@ export default function StationsMapInner({
     }
   }, [stations, userLocation, handleDirections]);
 
-  // Fetch route whenever target or mode changes
+  // Fetch route whenever target or mode changes.
+  // MOBILE FIX: userLocation is intentionally NOT in the dependency array.
+  // We use userLocRef to read the latest location at fetch time without
+  // making every GPS update retrigger a new OSRM network request.
   useEffect(() => {
-    if (!targetStation || !userLocation) return;
+    if (!targetStation) return;
+    const loc = userLocRef.current;
+    if (!loc) return;
     let cancelled = false;
     setRouteLoading(true);
     setRoutes([]);
     setSelectedRouteIdx(0);
     const [sLng, sLat] = targetStation.location.coordinates;
-    fetchRoutes(userLocation, [sLat, sLng], mode)
+    fetchRoutes(loc, [sLat, sLng], mode)
       .then((r) => { if (!cancelled) { setRoutes(r); setRouteLoading(false); } })
       .catch(() => { if (!cancelled) setRouteLoading(false); });
     return () => { cancelled = true; };
-  }, [targetStation, mode, userLocation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetStation, mode]); // userLocation deliberately excluded — see comment above
 
   // Fly to selected station on select
   useEffect(() => {

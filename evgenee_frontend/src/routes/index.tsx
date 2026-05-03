@@ -10,6 +10,20 @@ import { LandingPage } from "@/components/LandingPage";
 import { Drawer } from "vaul";
 import { useNavigate } from "@tanstack/react-router";
 
+/** Returns distance in meters between two [lat, lng] pairs using Haversine */
+function distanceMeters(a: [number, number], b: [number, number]): number {
+  const R = 6371000;
+  const dLat = ((b[0] - a[0]) * Math.PI) / 180;
+  const dLng = ((b[1] - a[1]) * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((a[0] * Math.PI) / 180) *
+      Math.cos((b[0] * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
 /** Haversine formula — returns distance in kilometres between two lat/lng points */
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371; // Earth radius in km
@@ -50,11 +64,6 @@ function HomePage() {
     return DEFAULT_CENTER;
   });
 
-  const handleMapMove = useCallback((c: [number, number]) => {
-    setCenter(c);
-    sessionStorage.setItem("mapCenter", JSON.stringify(c));
-  }, []);
-
   // Raw stations from the API (no distance attached yet)
   const [rawStations, setRawStations] = useState<Station[]>(() => {
     if (typeof window !== "undefined") {
@@ -86,14 +95,23 @@ function HomePage() {
   // ── Continuous GPS tracking with watchPosition ──────────────────────────────
   // Runs for the lifetime of the authenticated session. Location is persisted
   // to sessionStorage so it survives re-mounts without asking for GPS again.
+  // MOBILE FIX: Only update state if user moved >15 m to prevent GPS jitter
+  // from causing a continuous re-render cascade on mobile/PWA.
+  const lastKnownLocRef = useRef<[number, number] | null>(null);
   useEffect(() => {
     if (!isAuthed || !navigator.geolocation) return;
     setLocating(true);
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const c: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        setUserLocation(c);
+        // Only trigger a React state update (and re-render) if user moved > 15 m
+        const prev = lastKnownLocRef.current;
+        const moved = !prev || distanceMeters(prev, c) > 15;
+        lastKnownLocRef.current = c;
         sessionStorage.setItem("userLocation", JSON.stringify(c));
+        if (moved) {
+          setUserLocation(c);
+        }
         // On the very first fix, fly the map to the user's location
         if (!sessionStorage.getItem("mapCenter")) {
           setCenter(c);
@@ -122,6 +140,24 @@ function HomePage() {
     }
   }, [userLocation]);
 
+  // MOBILE FIX: Don't re-fetch stations on every map pan. Use a stable fetch
+  // center that only updates when the user explicitly moves the map > 5 km.
+  const fetchCenterRef = useRef<[number, number]>(center);
+  const stationFetchTrigger = useRef(0);
+  const [fetchTick, setFetchTick] = useState(0);
+
+  const handleMapMove = useCallback((c: [number, number]) => {
+    setCenter(c);
+    sessionStorage.setItem("mapCenter", JSON.stringify(c));
+    // Only trigger a new station fetch if user panned > 5 km from last fetch center
+    const moved = distanceMeters(fetchCenterRef.current, c) > 5000;
+    if (moved) {
+      fetchCenterRef.current = c;
+      stationFetchTrigger.current += 1;
+      setFetchTick(stationFetchTrigger.current);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isAuthed) return;
     let cancel = false;
@@ -130,9 +166,10 @@ function HomePage() {
         setLoadingStations(true);
       }
       try {
+        const fc = fetchCenterRef.current;
         const r = isOwner
           ? await StationsAPI.myStations()
-          : await StationsAPI.nearby({ lat: center[0], lng: center[1], maxDistance: 50000 });
+          : await StationsAPI.nearby({ lat: fc[0], lng: fc[1], maxDistance: 50000 });
         if (!cancel) {
           const newStations = Array.isArray(r.data) ? r.data : (r.data?.data ?? []);
           setRawStations(newStations);
@@ -147,7 +184,9 @@ function HomePage() {
       }
     })();
     return () => { cancel = true; };
-  }, [center, isAuthed, isOwner]);
+    // fetchTick intentionally drives re-fetches; eslint-disable-next-line is correct here
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchTick, isAuthed, isOwner]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
