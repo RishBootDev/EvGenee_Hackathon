@@ -172,7 +172,7 @@ const findBestStationTool = tool(
 );
 
 const createBookingTool = (userInfo) => tool(
-  async ({ stationId, date, startTime, endTime, chargerType }) => {
+  async ({ stationId, date, startTime, endTime, chargerType, vehicleNumber }) => {
     try {
       const station = await Station.findById(stationId);
       if (!station) return "Station not found.";
@@ -231,6 +231,7 @@ const createBookingTool = (userInfo) => tool(
         totalCost,
         platformFee,
         grandTotal,
+        vehicleNumber,
         status: 'confirmed',
         otp,
         otpExpiresAt,
@@ -273,6 +274,7 @@ const createBookingTool = (userInfo) => tool(
       startTime: z.string().describe("Start time HH:MM"),
       endTime: z.string().describe("End time HH:MM"),
       chargerType: z.string().describe("The connector type"),
+      vehicleNumber: z.string().describe("The user's vehicle number/license plate"),
     })
   }
 );
@@ -280,14 +282,15 @@ const createBookingTool = (userInfo) => tool(
 const systemPrompt = new SystemMessage(`You are EvGenee, a helpful, polite, and efficient voice assistant for EV Charging Station bookings.
 
 FLOW:
-1. GATHER: Ensure you have Location, Date, Start Time, End Time/Duration, and Charger Type. Ask clarifying questions naturally.
-2. SEARCH: Once you have all 5, call 'find_best_station'.
+1. GATHER: Ensure you have Location, Date, Start Time, End Time/Duration, Charger Type, AND Vehicle Number. Ask clarifying questions naturally if any of these 6 details are missing.
+2. SEARCH: Once you have Location, Date, Start, End, and Charger Type, call 'find_best_station'.
 3. SUGGEST: Suggest the available station(s) found. Mention name and city.
-4. CONFIRM & BOOK: If the user says "Yes", "Confirm", or "Book it", call 'create_booking' using the stationId and details from the search results.
+4. CONFIRM & BOOK: If the user says "Yes", "Confirm", or "Book it", ensure you have their Vehicle Number, then call 'create_booking' using the stationId and details from the search results.
 
 CRITICAL INSTRUCTIONS:
+- You must get the user's Vehicle Number before calling 'create_booking'.
 - Do not use markdown (asterisks, etc.) in your final response.
-- When 'create_booking' is successful, tell the user their booking is confirmed and they are being redirected to payment.
+- When 'create_booking' is successful, tell the user their booking is confirmed and they are being redirected to payment for the 20% advance.
 - Be concise and friendly.`);
 
 function createVoiceAgent(userInfo) {

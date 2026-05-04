@@ -68,7 +68,7 @@ const initializeSocket = (io) => {
                 });
             } catch (error) {
                 console.error("[Socket.IO] AI Chat error:", error);
-                socket.emit('ai:voice_response', { success: false, error: "Failed to process chat" });
+                socket.emit('ai:voice_response', { success: false, error: "Failed to process chat: " + (error.message || error) });
             }
         });
 
