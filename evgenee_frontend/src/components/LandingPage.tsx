@@ -104,8 +104,8 @@ export function LandingPage() {
                   backgroundClip: "text",
                 }}
               >
-                Anywhere ,
-                Anytime !!
+                Anywhere,
+                Anytime!!
               </span>
               <br />
               
@@ -189,9 +189,10 @@ export function LandingPage() {
 
         {/* ── Features — numbered rows ────────────────────────────── */}
         <section className="py-24 px-6 max-w-7xl mx-auto">
+          
           <p
-            className="text-white/25 text-xs tracking-[0.2em] uppercase mb-16"
-            style={{ fontFamily: "'DM Mono', monospace" }}
+          className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-3"
+          style={{ fontFamily: "'DM Mono', monospace" }}
           >
             Why it works
           </p>
@@ -243,6 +244,80 @@ export function LandingPage() {
             ))}
           </div>
         </section>
+        {/* ── How it works ───────────────────────────────────────── */}
+        <section className="py-24 px-6 max-w-7xl mx-auto">
+          <p
+          className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-3"
+          style={{ fontFamily: "'DM Mono', monospace" }}
+          >
+          How it works
+          </p>
+          <h2
+          className="text-4xl font-extrabold text-white mb-14"
+          style={{ fontFamily: "'Syne', sans-serif" }}
+          >
+          Three steps to a full battery.
+          </h2>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-white/5 rounded-2xl overflow-hidden border border-white/8">
+          {[
+            {
+             num: "01",
+             icon: <MapPin className="h-5 w-5 text-blue-400" />,
+             title: "Find a station",
+             desc: "Open the app, see every charger near you in real time — availability and  price upfront.",
+          },
+          {
+            num: "02",
+            icon: <Zap className="h-5 w-5 text-cyan-400" />,
+            title: "Book your slot",
+            desc: "Reserve in under 60 seconds. Arrive and plug straight in — no waiting, no queue.",
+          },
+          {
+            num: "03",
+            icon: <BatteryCharging className="h-5 w-5 text-green-400" />,
+            title: "Charge and go",
+            desc: "Pay automatically through the app when done. Per-kWh billing, receipt in your inbox.",
+          },
+        ].map(({ num, icon, title, desc }) => (
+        <div
+        key={num}
+        className="bg-white/[0.03] p-8 hover:bg-white/[0.06] transition-colors"
+      >
+        <p
+          className="text-6xl font-black mb-6 leading-none"
+          style={{
+            fontFamily: "'Syne', sans-serif",
+            background: "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
+        >
+          {num}
+        </p>
+        <div className="bg-white/5 rounded-xl p-3 border border-white/8 w-fit mb-5">
+          {icon}
+        </div>
+        <h3
+          className="text-lg font-bold text-white mb-3"
+          style={{ fontFamily: "'Syne', sans-serif" }}
+        >
+          {title}
+        </h3>
+        <p className="text-blue-100/45 text-sm leading-relaxed">{desc}</p>
+      </div>
+    ))}
+  </div>
+
+  <div className="mt-10">
+    <Link to="/auth/register">
+      <button className="bg-green-500 hover:bg-green-400 text-black text-sm font-bold px-8 py-3.5 rounded-full transition-colors">
+        Get started →
+      </button>
+    </Link>
+  </div>
+        </section>
 
         {/* ── Map section ────────────────────────────────────────── */}
         <section className="px-6 pb-24 max-w-7xl mx-auto">
@@ -266,11 +341,7 @@ export function LandingPage() {
                 From metro highways to Tier-2 towns, we're expanding faster than
                 India's EV fleet. New stations come online every week.
               </p>
-              <Link to="/auth/register">
-                <button className="text-green-400 text-sm font-semibold border border-green-500/30 px-6 py-3 rounded-full hover:bg-green-500/10 transition-colors">
-                  Register now →
-                </button>
-              </Link>
+              
             </div>
             <div className="relative rounded-2xl overflow-hidden border border-white/8">
               <img
@@ -418,8 +489,8 @@ export function LandingPage() {
               <ul className="space-y-3">
                 {[
                   { icon: <Mail className="h-3.5 w-3.5" />, text: "support@evgenee.in" },
-                  { icon: <Phone className="h-3.5 w-3.5" />, text: "+91 98765 43210" },
-                  { icon: <MapPin className="h-3.5 w-3.5" />, text: "Bengaluru, India" },
+                  { icon: <Phone className="h-3.5 w-3.5" />, text: "+91 79095 47056" },
+                  { icon: <MapPin className="h-3.5 w-3.5" />, text: "Bhopal, India" },
                 ].map(({ icon, text }) => (
                   <li
                     key={text}
