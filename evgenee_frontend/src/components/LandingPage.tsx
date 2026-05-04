@@ -128,7 +128,7 @@ export function LandingPage() {
           {/* Hero image */}
           <div className="relative rounded-2xl overflow-hidden border border-white/8">
             <img
-              src="/hero-bg.png"
+              src="/evStation.jpeg"
               alt="EvGenee charging station"
               className="w-full h-[380px] sm:h-[460px] object-cover"
               style={{ filter: "brightness(0.7) saturate(0.85)" }}
