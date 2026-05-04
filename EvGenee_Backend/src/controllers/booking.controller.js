@@ -148,7 +148,7 @@ const createBooking = async (req, res, next) => {
     const otpExpiresAt = new Date(bookingDate);
     const [endH, endM] = endTime.split(':').map(Number);
     otpExpiresAt.setHours(endH, endM, 0, 0);
-    const tansporter=nodemailer.createTransport({
+    const transporter=nodemailer.createTransport({
       secure:true,
       host:"smtp.gmail.com",
       port:NODEMAILER_PORT,
@@ -157,7 +157,7 @@ const createBooking = async (req, res, next) => {
         pass:NODEMAILER_PASS
       }
     })
-   await transporter.sendMail({
+   await  transporter.sendMail({
     to:to,
     subject:"Your EV Charging Booking OTP",
     html:`<p>Dear User,</p>

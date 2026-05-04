@@ -20,13 +20,11 @@ const io = new Server(server, {
 
 app.set('io', io);
 
-// Initialize Socket.IO event handlers
 initializeSocket(io);
 
-// Connect to database and start server
 Connectdb()
     .then(async () => {
-        // Initialize platform settings with default 5% if not exists
+       
         const existingSettings = await PlatformSettings.findOne();
         if (!existingSettings) {
             await PlatformSettings.create({

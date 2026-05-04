@@ -24,11 +24,9 @@ const { handleValidationErrors } = require('../middlewares/validate.middleware')
 
 const router = express.Router();
 
-// ===== PUBLIC ROUTES =====
 router.get('/nearby', nearbyStationValidation, handleValidationErrors, getNearbyStations);
 
-// ===== ADMIN ROUTES (defined before generic :stationId routes) =====
-// Get all stations with filters
+
 router.get(
     '/admin/all-stations',
     validateToken,
@@ -36,7 +34,7 @@ router.get(
     getAllStations
 );
 
-// Get stations by owner
+
 router.get(
     '/admin/owner/:ownerId',
     validateToken,
@@ -60,7 +58,7 @@ router.put(
     suspendStationOwner
 );
 
-// Delete station (admin only)
+
 router.delete(
     '/admin/:stationId',
     validateToken,
@@ -68,7 +66,7 @@ router.delete(
     deleteStation
 );
 
-// ===== OWNER ROUTES =====
+
 router.post(
     '/add',
     validateToken,
@@ -85,7 +83,6 @@ router.get(
     getMyStations
 );
 
-// ===== GENERIC ROUTES =====
 router.get('/:stationId', getStationById);
 
 router.post('/:stationId/review', validateToken, addReviewValidation, handleValidationErrors, addReview);

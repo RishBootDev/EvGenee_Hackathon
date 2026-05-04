@@ -11,4 +11,5 @@ try {
 
 export const socket: Socket = io(socketUrl, {
   autoConnect: false,
+  withCredentials: true,
 });

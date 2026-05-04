@@ -6,7 +6,14 @@ const { MemorySaver } = require("@langchain/langgraph");
 const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
 const Station = require("../models/station.model");
 const Booking = require("../models/booking.model");
+const PlatformSettings = require("../models/platformSettings.model");
+const nodemailer = require('nodemailer');
+const { NODEMAILER_USER, NODEMAILER_PASS, NODEMAILER_PORT } = require('../config/config');
 const axios = require("axios");
+
+const generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 const memory = new MemorySaver();
 
@@ -47,15 +54,13 @@ const findBestStationTool = tool(
         location: {
           $near: {
             $geometry: { type: "Point", coordinates: coords },
-            $maxDistance: 40000 // 40km
+            $maxDistance: 40000 
           }
-        },
-        isOpen: true,
-        typeOfConnectors: chargerType
+        }
       }).limit(5);
 
       if (stations.length === 0) {
-        return `I couldn't find any open charging stations within 40km of ${location} that support ${chargerType} connectors.`;
+        return JSON.stringify({ error: `I couldn't find any charging stations within 40km of ${location}.` });
       }
 
       const queryDate = new Date(date);
@@ -65,7 +70,18 @@ const findBestStationTool = tool(
       let foundAvailable = false;
 
       for (const st of stations) {
-    
+        // Check if station supports the charger type
+        if (!st.typeOfConnectors.includes(chargerType)) {
+           result += ` ${st.name} in ${st.address.city} does NOT support ${chargerType} (Available: ${st.typeOfConnectors.join(', ')}).\n`;
+           continue;
+        }
+
+        // Check if open
+        if (!st.isOpen) {
+           result += ` ${st.name} in ${st.address.city} is currently CLOSED.\n`;
+           continue;
+        }
+
         const bookings = await Booking.find({
           station: st._id,
           date: queryDate,
@@ -73,7 +89,7 @@ const findBestStationTool = tool(
           connectorType: chargerType
         });
 
-      
+
         let overlapping = 0;
         for (const b of bookings) {
           if (isOverlapping(startTime, endTime, b.startTime, b.endTime)) {
@@ -82,33 +98,33 @@ const findBestStationTool = tool(
         }
 
         if (overlapping < st.availablePorts) {
-          result += ` ${st.name} in ${st.address.city} is AVAILABLE from ${startTime} to ${endTime}.\n`;
+          result += ` ${st.name} (ID: ${st._id}) in ${st.address.city} is AVAILABLE from ${startTime} to ${endTime}.\n`;
           foundAvailable = true;
-          break; 
+          break;
         } else {
           // Find alternative slots (e.g. shift by 1 hour forward or backward)
           result += ` ${st.name} is FULLY BOOKED at that time. `;
-          
-        
+
+
           const reqStartMins = timeToMinutes(startTime);
           const duration = timeToMinutes(endTime) - reqStartMins;
-          
+
           let altFound = false;
-          
+
           for (let offset = 60; offset <= 240; offset += 60) {
             const altStartMins = reqStartMins + offset;
             const altEndMins = altStartMins + duration;
-            
+
             if (altStartMins >= 24 * 60 || altEndMins >= 24 * 60) continue;
-            
+
             const altStart = `${Math.floor(altStartMins / 60).toString().padStart(2, '0')}:${(altStartMins % 60).toString().padStart(2, '0')}`;
             const altEnd = `${Math.floor(altEndMins / 60).toString().padStart(2, '0')}:${(altEndMins % 60).toString().padStart(2, '0')}`;
-            
+
             let altOverlapping = 0;
             for (const b of bookings) {
               if (isOverlapping(altStart, altEnd, b.startTime, b.endTime)) altOverlapping++;
             }
-            
+
             if (altOverlapping < st.availablePorts) {
               result += `However, it is AVAILABLE later from ${altStart} to ${altEnd}.\n`;
               altFound = true;
@@ -119,14 +135,27 @@ const findBestStationTool = tool(
         }
       }
 
-      if (!foundAvailable) {
-        result = "None of the nearby stations are available at your exact requested time. " + result;
-      }
+      const stationsData = stations.map(st => ({
+        id: st._id,
+        name: st.name,
+        city: st.address.city,
+        isOpen: st.isOpen,
+        totalPorts: st.totalPorts,
+        availablePorts: st.availablePorts,
+        chargerTypes: st.typeOfConnectors,
+        chargingSpeed: st.chargingSpeed,
+        pricing: st.pricing,
+        isCompatible: st.typeOfConnectors.includes(chargerType)
+      }));
 
-      return result + "\nWould you like me to book one of these available slots for you?";
+      return JSON.stringify({
+        text: result + (foundAvailable ? "\nWould you like me to book one of these available slots for you?" : ""),
+        stations: stationsData,
+        foundAvailable
+      });
     } catch (err) {
       console.error("Tool Error:", err);
-      return `Sorry, I encountered an error while searching for stations: ${err.message}`;
+      return JSON.stringify({ error: `Sorry, I encountered an error while searching for stations: ${err.message}` });
     }
   },
   {
@@ -142,28 +171,132 @@ const findBestStationTool = tool(
   }
 );
 
+const createBookingTool = (userInfo) => tool(
+  async ({ stationId, date, startTime, endTime, chargerType }) => {
+    try {
+      const station = await Station.findById(stationId);
+      if (!station) return "Station not found.";
+
+      const bookingDate = new Date(date);
+      bookingDate.setHours(0, 0, 0, 0);
+
+      const requestedStart = timeToMinutes(startTime);
+      const requestedEnd = timeToMinutes(endTime);
+      const durationMinutes = requestedEnd - requestedStart;
+
+      // Re-validate availability to avoid conflict
+      const existingBookings = await Booking.find({
+        station: stationId,
+        date: bookingDate,
+        status: { $in: ['pending', 'confirmed', 'in-progress'] },
+        connectorType: chargerType
+      });
+      
+      let overlapping = 0;
+      for (const b of existingBookings) {
+        if (isOverlapping(startTime, endTime, b.startTime, b.endTime)) {
+          overlapping++;
+        }
+      }
+      
+      if (overlapping >= station.availablePorts) {
+        return "Conflict detected: This slot is no longer available. Please try another time.";
+      }
+
+      const pricing = station.pricing.find((p) => p.connectorType === chargerType);
+      const pricePerKWh = pricing ? pricing.priceperKWh : 0;
+      const durationHours = durationMinutes / 60;
+      const estimatedKWh = parseFloat((station.chargingSpeed * durationHours).toFixed(2));
+      const totalCost = parseFloat((estimatedKWh * pricePerKWh).toFixed(2));
+
+      const settings = await PlatformSettings.findOne();
+      const platformFeePercentage = settings ? settings.platformFee : 5;
+      const platformFee = parseFloat(((totalCost * platformFeePercentage) / 100).toFixed(2));
+      const grandTotal = parseFloat((totalCost + platformFee).toFixed(2));
+
+      const otp = generateOtp();
+      const otpExpiresAt = new Date(bookingDate);
+      const [endH, endM] = endTime.split(':').map(Number);
+      otpExpiresAt.setHours(endH, endM, 0, 0);
+
+      const booking = await Booking.create({
+        user: userInfo.userId,
+        station: stationId,
+        connectorType: chargerType,
+        date: bookingDate,
+        startTime,
+        endTime,
+        durationMinutes,
+        estimatedKWh,
+        totalCost,
+        platformFee,
+        grandTotal,
+        status: 'confirmed',
+        otp,
+        otpExpiresAt,
+      });
+
+      const transporter = nodemailer.createTransport({
+        secure: true,
+        host: "smtp.gmail.com",
+        port: NODEMAILER_PORT,
+        auth: {
+          user: NODEMAILER_USER,
+          pass: NODEMAILER_PASS
+        }
+      });
+
+      await transporter.sendMail({
+        to: userInfo.email,
+        subject: "Your EV Charging Booking OTP",
+        html: `<p>Dear ${userInfo.name},</p>
+        <p>Your booking for station <strong>${station.name}</strong> on <strong>${date}</strong> from <strong>${startTime}</strong> to <strong>${endTime}</strong> has been confirmed.</p>
+        <p>Your OTP for check-in is: <strong>${otp}</strong></p>`
+      });
+
+      return JSON.stringify({
+        success: true,
+        bookingId: booking._id,
+        message: "Booking created successfully. Redirecting to payment..."
+      });
+    } catch (err) {
+      console.error("Booking Tool Error:", err);
+      return `Failed to create booking: ${err.message}`;
+    }
+  },
+  {
+    name: "create_booking",
+    description: "Creates a formal booking in the system after the user confirms a specific slot and station.",
+    schema: z.object({
+      stationId: z.string().describe("The ID of the station to book"),
+      date: z.string().describe("The date of booking"),
+      startTime: z.string().describe("Start time HH:MM"),
+      endTime: z.string().describe("End time HH:MM"),
+      chargerType: z.string().describe("The connector type"),
+    })
+  }
+);
+
 const systemPrompt = new SystemMessage(`You are EvGenee, a helpful, polite, and efficient voice assistant for EV Charging Station bookings.
 
+FLOW:
+1. GATHER: Ensure you have Location, Date, Start Time, End Time/Duration, and Charger Type. Ask clarifying questions naturally.
+2. SEARCH: Once you have all 5, call 'find_best_station'.
+3. SUGGEST: Suggest the available station(s) found. Mention name and city.
+4. CONFIRM & BOOK: If the user says "Yes", "Confirm", or "Book it", call 'create_booking' using the stationId and details from the search results.
+
 CRITICAL INSTRUCTIONS:
-Before you search for any stations, you MUST ensure you have clarified the following 5 pieces of information from the user:
-1. Location (e.g., Delhi, Connaught Place)
-2. Date (e.g., '2024-05-02', 'tomorrow')
-3. Start Time (convert to 24-hour HH:MM format)
-4. End Time or Duration (convert to an exact End Time in 24-hour HH:MM format. e.g. if they say "for 2 hours starting at 10 AM", End Time is "12:00")
-5. Charger Type (e.g., CCS2, Type2, CHAdeMO, Tesla)
+- Do not use markdown (asterisks, etc.) in your final response.
+- When 'create_booking' is successful, tell the user their booking is confirmed and they are being redirected to payment.
+- Be concise and friendly.`);
 
-If ANY of these are missing, DO NOT call any tools. Instead, ask the user clarifying questions naturally.
-Once you have all 5 pieces of information, call the 'find_best_station' tool.
-If the tool says a station is fully booked but recommends an alternative time, relay that alternative time to the user naturally.
-Be concise and conversational. Do not use markdown formatting like asterisks or bullet points in your final spoken response.`);
-
-function createVoiceAgent() {
+function createVoiceAgent(userInfo) {
   const llm = new ChatGroq({
-    modelName: "llama-3.1-70b-versatile", 
+    modelName: "llama-3.1-70b-versatile",
     temperature: 0.1,
   });
 
-  const tools = [findBestStationTool];
+  const tools = [findBestStationTool, createBookingTool(userInfo)];
 
   const agent = createReactAgent({
     llm,
@@ -175,10 +308,9 @@ function createVoiceAgent() {
   return agent;
 }
 
-const voiceAgent = createVoiceAgent();
-
-async function processVoiceChat(message, threadId) {
+async function processVoiceChat(message, threadId, userInfo) {
   try {
+    const voiceAgent = createVoiceAgent(userInfo);
     const response = await voiceAgent.invoke(
       { messages: [new HumanMessage(message)] },
       { configurable: { thread_id: threadId } }
@@ -186,6 +318,46 @@ async function processVoiceChat(message, threadId) {
 
     const aiMessages = response.messages.filter(m => m._getType() === "ai");
     const lastMessage = aiMessages[aiMessages.length - 1];
+
+    // Check for bookingId in tool outputs
+    let bookingId = null;
+    const toolMessages = response.messages.filter(m => m._getType() === "tool");
+    for (const tm of toolMessages) {
+      try {
+        const content = JSON.parse(tm.content);
+        if (content.success && content.bookingId) {
+          bookingId = content.bookingId;
+        }
+      } catch (e) {
+        // Not JSON or not a booking response
+      }
+    }
+
+    if (bookingId) {
+      return {
+        response: lastMessage.content,
+        bookingId: bookingId,
+        redirect: true
+      };
+    }
+
+    // Check for station data in tool outputs
+    let stations = null;
+    for (const tm of toolMessages) {
+      try {
+        const content = JSON.parse(tm.content);
+        if (content.stations) {
+          stations = content.stations;
+        }
+      } catch (e) {}
+    }
+
+    if (stations) {
+      return {
+        response: lastMessage.content,
+        stations: stations
+      };
+    }
 
     return lastMessage.content;
   } catch (error) {

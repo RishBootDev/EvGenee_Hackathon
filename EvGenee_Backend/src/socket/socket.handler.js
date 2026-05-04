@@ -1,6 +1,21 @@
 const { processVoiceChat } = require('../services/langgraph.service');
+const jwt = require('jsonwebtoken');
+const { JWT_KEY } = require('../config/config');
 
 const initializeSocket = (io) => {
+    io.use((socket, next) => {
+        const token = socket.handshake.auth?.token || socket.handshake.headers?.cookie?.split('token=')[1]?.split(';')[0];
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, JWT_KEY);
+                socket.user = decoded;
+            } catch (err) {
+                console.error("[Socket.IO] Auth error:", err.message);
+            }
+        }
+        next();
+    });
+
     io.on('connection', (socket) => {
         console.log(`[Socket.IO] Client connected: ${socket.id}`);
 
@@ -34,8 +49,23 @@ const initializeSocket = (io) => {
             try {
                 const { message, threadId } = data;
                 console.log(`[Socket.IO] AI Chat request from ${socket.id}`);
-                const response = await processVoiceChat(message, threadId || socket.id);
-                socket.emit('ai:voice_response', { success: true, response, threadId: threadId || socket.id });
+                
+                if (!socket.user) {
+                    return socket.emit('ai:voice_response', { success: false, error: "Authentication required" });
+                }
+
+                const userInfo = {
+                    userId: socket.user.id,
+                    name: socket.user.name,
+                    email: socket.user.email
+                };
+
+                const response = await processVoiceChat(message, threadId || socket.id, userInfo);
+                socket.emit('ai:voice_response', { 
+                    success: true, 
+                    ...(typeof response === 'string' ? { response } : response), 
+                    threadId: threadId || socket.id 
+                });
             } catch (error) {
                 console.error("[Socket.IO] AI Chat error:", error);
                 socket.emit('ai:voice_response', { success: false, error: "Failed to process chat" });

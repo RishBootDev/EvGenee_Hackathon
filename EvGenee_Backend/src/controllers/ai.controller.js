@@ -11,14 +11,18 @@ const handleVoiceChat = async (req, res) => {
 
   
     const currentThreadId = threadId || uuidv4();
+    const userInfo = {
+      userId: req.user.id,
+      name: req.user.name,
+      email: req.user.email
+    };
 
-   
-    const aiResponse = await processVoiceChat(message, currentThreadId);
+    const aiResult = await processVoiceChat(message, currentThreadId, userInfo);
 
     res.status(200).json({
       success: true,
       data: {
-        response: aiResponse,
+        ...(typeof aiResult === 'string' ? { response: aiResult } : aiResult),
         threadId: currentThreadId
       }
     });
