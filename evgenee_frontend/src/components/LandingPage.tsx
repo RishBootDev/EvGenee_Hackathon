@@ -1,297 +1,526 @@
 import { Link } from "@tanstack/react-router";
-import { Zap, MapPin, BatteryCharging, ChevronRight, ShieldCheck, Clock, Mail, Phone, Facebook, Twitter, Instagram, Linkedin, Github } from "lucide-react";
-import { Button } from "./ui/button";
+import {
+  Zap,
+  MapPin,
+  BatteryCharging,
+  ChevronRight,
+  ShieldCheck,
+  Clock,
+  Mail,
+  Phone,
+  Twitter,
+  Instagram,
+  Linkedin,
+  Github,
+} from "lucide-react";
+
+// Add to your global CSS / index.html:
+// @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap');
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#000814] text-white overflow-x-hidden selection:bg-primary/30">
-      {/* Dynamic Background Glows */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-900/20 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
-      </div>
+    <div
+      className="min-h-screen bg-[#000814] text-white overflow-x-hidden"
+      style={{ fontFamily: "'DM Sans', sans-serif" }}
+    >
+      {/* Grain texture */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none opacity-[0.03]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "repeat",
+          backgroundSize: "128px 128px",
+        }}
+      />
 
-      {/* Navbar */}
-      <nav className="relative z-50 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2">
-          <div className="bg-primary/20 p-2 rounded-xl backdrop-blur-md border border-primary/30 shadow-[var(--shadow-glow)]">
-            <Zap className="h-6 w-6 text-primary" fill="currentColor" />
+      {/* Two intentional glows only */}
+      <div
+        className="fixed top-0 left-0 w-[700px] h-[500px] pointer-events-none z-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 0% 0%, rgba(59,130,246,0.12) 0%, transparent 70%)",
+        }}
+      />
+      <div
+        className="fixed bottom-0 right-0 w-[500px] h-[500px] pointer-events-none z-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 100% 100%, rgba(16,185,129,0.08) 0%, transparent 70%)",
+        }}
+      />
+
+      {/* ── Navbar ─────────────────────────────────────────────── */}
+      <nav className="relative z-50 flex items-center justify-between px-6 py-5 max-w-7xl mx-auto border-b border-white/5">
+        <div className="flex items-center gap-2.5">
+          <div className="bg-green-500/15 p-2 rounded-xl border border-green-500/25">
+            <Zap className="h-5 w-5 text-green-400" fill="currentColor" />
           </div>
-          <span className="text-2xl font-bold tracking-tight text-white">EvGenee</span>
+          <span
+            className="text-xl font-bold tracking-tight text-white"
+            style={{ fontFamily: "'Syne', sans-serif" }}
+          >
+            EvGenee
+          </span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Link to="/auth/login">
-            <Button variant="ghost" className="font-semibold text-white/80 hover:text-white hover:bg-white/10 hidden sm:flex">Log In</Button>
+            <button className="hidden sm:block text-white/50 hover:text-white text-sm font-medium transition-colors px-4 py-2">
+              Log in
+            </button>
           </Link>
           <Link to="/auth/register">
-            <Button className="bg-primary text-primary-foreground font-bold shadow-[var(--shadow-glow)] hover:scale-105 transition-transform rounded-full px-8 h-11">
+            <button className="bg-green-500 hover:bg-green-400 text-black text-sm font-bold px-6 py-2.5 rounded-full transition-colors">
               Get Started
-            </Button>
+            </button>
           </Link>
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* ── Hero ───────────────────────────────────────────────── */}
       <main className="relative z-10">
-        <section className="pt-12 pb-20 sm:pt-20 sm:pb-32 px-6 max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            {/* Left Column: Text Content */}
-            <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-semibold mb-8 animate-float backdrop-blur-md">
-                <Zap className="h-4 w-4" />
-                <span>The Future of EV Charging</span>
-              </div>
+        <section className="px-6 pt-16 pb-12 max-w-7xl mx-auto">
+          {/* Eyebrow */}
+          <p
+            className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-10"
+            style={{ fontFamily: "'DM Mono', monospace" }}
+          >
+            EV charging network · India
+          </p>
+
+          {/* Headline + subtext */}
+          <div className="grid lg:grid-cols-[1fr_300px] gap-8 items-end mb-14">
+            <h1
+              className="text-[clamp(3.5rem,10vw,7.5rem)] font-black leading-[0.88] tracking-tight text-white"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+            >
+              Charge Your EV ,
+              <br />
+              <span
+                style={{
+                  background:
+                    "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                Anywhere,
+                Anytime!!
+              </span>
+              <br />
               
-              <h1 className="text-6xl sm:text-8xl font-black tracking-tight mb-8 text-balance leading-[1.1] text-white">
-                Charge Your EV, <br className="hidden sm:block" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-                  Anywhere, Anytime.
-                </span>
-              </h1>
-              
-              <p className="text-blue-100/70 text-lg sm:text-xl max-w-2xl mb-12 text-balance leading-relaxed">
-                Find, book, and pay for EV charging stations near you. Join the largest network of fast chargers and drive with zero range anxiety.
+            </h1>
+
+            <div className="pb-2">
+              <p className="text-blue-100/55 text-base leading-relaxed mb-7">
+                Book a fast charger in under 60 seconds. Real-time slots,
+                transparent pricing, zero surprises.
               </p>
-
-              <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-                <Link to="/auth/register" className="w-full sm:w-auto">
-                  <Button className="w-full sm:w-auto h-16 px-10 text-lg bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-[var(--shadow-glow)] font-bold tracking-wide group transition-all">
-                    Find Chargers Near Me
-                    <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            {/* Right Column: Featured Image Showcase */}
-            <div className="relative mt-12 lg:mt-0">
-              <div className="relative z-10 rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl shadow-blue-500/20 group bg-blue-950/20 backdrop-blur-sm">
-                <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 to-transparent mix-blend-overlay z-10" />
-                <img 
-                  src="/hero-bg.png" 
-                  alt="EvGenee Featured Station" 
-                  className="w-full h-auto aspect-[4/3] object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-              </div>
-              
-              <div className="absolute -top-12 -right-12 w-48 h-48 bg-blue-600/20 blur-[100px] rounded-full -z-10 animate-pulse" />
-              <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-emerald-500/10 blur-[120px] rounded-full -z-10" />
-              
-              <div className="absolute -bottom-8 -right-8 z-20 bg-blue-900/40 backdrop-blur-2xl border border-white/10 p-5 rounded-[2rem] shadow-2xl max-w-[220px] animate-float">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <BatteryCharging className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-blue-200/60">Status</span>
-                </div>
-                <p className="text-base font-bold text-white">Ultra-Fast Charging Available</p>
-              </div>
+              <Link to="/auth/register">
+                <button className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold px-7 py-3.5 rounded-full transition-colors group w-full sm:w-auto justify-center">
+                  Find Chargers Near Me
+                  <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </Link>
             </div>
           </div>
-        </section>
 
-        {/* Features Section */}
-        <section className="py-24 px-6 max-w-7xl mx-auto relative">
-          <div className="grid lg:grid-cols-2 gap-20 items-center">
-            <div className="space-y-10">
-              <div className="max-w-md">
-                <h2 className="text-4xl font-bold mb-6 text-white">Why Choose EvGenee?</h2>
-                <p className="text-blue-100/60 text-lg">Experience a seamless charging ecosystem built for the modern electric vehicle owner.</p>
-              </div>
-              
-              <div className="space-y-4">
-                <FeatureCard 
-                  icon={<MapPin className="h-5 w-5 text-primary" />}
-                  title="Real-time Availability"
-                  description="See exactly which chargers are free right now. No more driving to a station just to wait in line."
-                />
-                <FeatureCard 
-                  icon={<Clock className="h-5 w-5 text-primary" />}
-                  title="Smart Pre-booking"
-                  description="Reserve your charging slot in advance. Arrive, plug in, and charge immediately without the hassle."
-                />
-                <FeatureCard 
-                  icon={<ShieldCheck className="h-5 w-5 text-primary" />}
-                  title="Secure Payments"
-                  description="Pay seamlessly through the app. Transparent pricing with no hidden fees or surprises."
-                />
-              </div>
-            </div>
-
-            <div className="relative group">
-              <div className="absolute inset-0 bg-blue-500/20 blur-[150px] rounded-full -z-10 animate-pulse" />
-              <div className="relative z-10 rounded-[3.5rem] overflow-hidden border border-white/10 bg-blue-950/40 backdrop-blur-3xl shadow-2xl">
-                <img 
-                  src="/india-map.png" 
-                  alt="EvGenee India Network" 
-                  className="w-full h-auto object-cover opacity-80 transition-transform duration-1000 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#000814] via-transparent to-transparent pointer-events-none" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* City Map Banner */}
-        <section className="px-6 mb-24 max-w-7xl mx-auto">
-          <div className="relative rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl group">
-            <div className="absolute inset-0 bg-gradient-to-t from-[#000814] via-transparent to-transparent z-10" />
-            <img 
-              src="/city-map-banner.png" 
-              alt="City EV Network" 
-              className="w-full h-64 sm:h-80 object-cover transition-transform duration-1000 group-hover:scale-105"
+          {/* Hero image */}
+          <div className="relative rounded-2xl overflow-hidden border border-white/8">
+            <img
+              src="/evStation.jpeg"
+              alt="EvGenee charging station"
+              className="w-full h-[380px] sm:h-[460px] object-cover"
+              style={{ filter: "brightness(0.7) saturate(0.85)" }}
             />
-            <div className="absolute bottom-10 left-10 z-20">
-              <h3 className="text-3xl font-bold text-white mb-2">Expanding Network</h3>
-              <p className="text-blue-100/70 text-lg">Available in over 50+ cities across the country.</p>
+            <div className="absolute bottom-0 left-0 right-0 px-6 py-5 flex items-end justify-between bg-gradient-to-t from-black/80 via-black/30 to-transparent">
+              <div>
+                <p
+                  className="text-green-400/70 text-xs font-medium tracking-widest uppercase mb-1"
+                  style={{ fontFamily: "'DM Mono', monospace" }}
+                >
+                  Live availability
+                </p>
+                
+              </div>
+              <div
+                className="flex items-center gap-2 text-white/40 text-xs"
+                style={{ fontFamily: "'DM Mono', monospace" }}
+              >
+                <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse inline-block" />
+                Updated live
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Call to Action Banner */}
-        <section className="px-6 pb-32 max-w-5xl mx-auto">
-          <div className="bg-gradient-to-br from-blue-900/40 to-blue-950/40 border border-white/10 rounded-[3rem] p-10 sm:p-20 text-center relative overflow-hidden shadow-2xl backdrop-blur-xl">
-            <div className="absolute -top-32 -right-32 w-80 h-80 bg-blue-500/20 blur-[120px] rounded-full" />
-            <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-primary/10 blur-[120px] rounded-full" />
-            
-            <BatteryCharging className="h-20 w-20 text-primary mx-auto mb-8 relative z-10 animate-pulse" />
-            <h2 className="text-4xl sm:text-6xl font-black mb-6 relative z-10 text-white">Ready to Hit the Road?</h2>
-            <p className="text-blue-100/60 text-xl mb-12 max-w-2xl mx-auto relative z-10">
-              Create an account in seconds and unlock the full potential of your electric vehicle journey.
-            </p>
-            <Link to="/auth/register" className="relative z-10">
-              <Button className="h-16 px-12 bg-white text-blue-950 hover:bg-blue-50 rounded-full font-black text-lg transition-all shadow-2xl">
-                Create Free Account
-              </Button>
-            </Link>
+        {/* ── Stats bar ──────────────────────────────────────────── */}
+        <section className="border-y border-white/5 py-10 px-6 max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              { value: "50+", label: "Cities covered" },
+              { value: "2,400+", label: "Active chargers" },
+              { value: "98%", label: "Uptime SLA" },
+              { value: "<60s", label: "Avg. booking time" },
+            ].map(({ value, label }) => (
+              <div key={label}>
+                <p
+                  className="text-4xl font-extrabold mb-1"
+                  style={{
+                    fontFamily: "'Syne', sans-serif",
+                    background: "linear-gradient(90deg, #60a5fa, #34d399)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  {value}
+                </p>
+                <p
+                  className="text-white/35 text-xs tracking-wide uppercase"
+                  style={{ fontFamily: "'DM Mono', monospace" }}
+                >
+                  {label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Features — numbered rows ────────────────────────────── */}
+        <section className="py-24 px-6 max-w-7xl mx-auto">
+          
+          <p
+          className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-3"
+          style={{ fontFamily: "'DM Mono', monospace" }}
+          >
+            Why it works
+          </p>
+
+          <div className="divide-y divide-white/5">
+            {[
+              {
+                num: "01",
+                icon: <MapPin className="h-5 w-5 text-blue-400" />,
+                title: "Real-time availability",
+                desc: "See which slots are free right now — not 10 minutes ago. We sync directly with station hardware, not self-reported data.",
+              },
+              {
+                num: "02",
+                icon: <Clock className="h-5 w-5 text-cyan-400" />,
+                title: "Book ahead, not on arrival",
+                desc: "Reserve your slot while you're still at home. Arrive, plug in, done. No queue, no gamble.",
+              },
+              {
+                num: "03",
+                icon: <ShieldCheck className="h-5 w-5 text-green-400" />,
+                title: "One price, no surprises",
+                desc: "What you see is what you pay. Per-kWh billing — no idle fees buried in the fine print.",
+              },
+            ].map(({ num, icon, title, desc }) => (
+              <div
+                key={num}
+                className="py-10 grid lg:grid-cols-[72px_1fr_1fr] gap-6 items-center group hover:bg-white/[0.02] -mx-6 px-6 transition-colors rounded-xl"
+              >
+                <p
+                  className="text-white/20 text-sm group-hover:text-green-400/40 transition-colors"
+                  style={{ fontFamily: "'DM Mono', monospace" }}
+                >
+                  {num}
+                </p>
+                <div className="flex items-center gap-4">
+                  <div className="bg-white/5 rounded-xl p-2.5 border border-white/8">
+                    {icon}
+                  </div>
+                  <h3
+                    className="text-xl font-bold text-white"
+                    style={{ fontFamily: "'Syne', sans-serif" }}
+                  >
+                    {title}
+                  </h3>
+                </div>
+                <p className="text-blue-100/45 text-sm leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+        {/* ── How it works ───────────────────────────────────────── */}
+        <section className="py-24 px-6 max-w-7xl mx-auto">
+          <p
+          className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-3"
+          style={{ fontFamily: "'DM Mono', monospace" }}
+          >
+          How it works
+          </p>
+          <h2
+          className="text-4xl font-extrabold text-white mb-14"
+          style={{ fontFamily: "'Syne', sans-serif" }}
+          >
+          Three steps to a full battery.
+          </h2>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-white/5 rounded-2xl overflow-hidden border border-white/8">
+          {[
+            {
+             num: "01",
+             icon: <MapPin className="h-5 w-5 text-blue-400" />,
+             title: "Find a station",
+             desc: "Open the app, see every charger near you in real time — availability and  price upfront.",
+          },
+          {
+            num: "02",
+            icon: <Zap className="h-5 w-5 text-cyan-400" />,
+            title: "Book your slot",
+            desc: "Reserve in under 60 seconds. Arrive and plug straight in — no waiting, no queue.",
+          },
+          {
+            num: "03",
+            icon: <BatteryCharging className="h-5 w-5 text-green-400" />,
+            title: "Charge and go",
+            desc: "Pay automatically through the app when done. Per-kWh billing, receipt in your inbox.",
+          },
+        ].map(({ num, icon, title, desc }) => (
+        <div
+        key={num}
+        className="bg-white/[0.03] p-8 hover:bg-white/[0.06] transition-colors"
+      >
+        <p
+          className="text-6xl font-black mb-6 leading-none"
+          style={{
+            fontFamily: "'Syne', sans-serif",
+            background: "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
+        >
+          {num}
+        </p>
+        <div className="bg-white/5 rounded-xl p-3 border border-white/8 w-fit mb-5">
+          {icon}
+        </div>
+        <h3
+          className="text-lg font-bold text-white mb-3"
+          style={{ fontFamily: "'Syne', sans-serif" }}
+        >
+          {title}
+        </h3>
+        <p className="text-blue-100/45 text-sm leading-relaxed">{desc}</p>
+      </div>
+    ))}
+  </div>
+
+  <div className="mt-10">
+    <Link to="/auth/register">
+      <button className="bg-green-500 hover:bg-green-400 text-black text-sm font-bold px-8 py-3.5 rounded-full transition-colors">
+        Get started →
+      </button>
+    </Link>
+  </div>
+        </section>
+
+        {/* ── Map section ────────────────────────────────────────── */}
+        <section className="px-6 pb-24 max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <p
+                className="text-green-400/60 text-xs tracking-[0.2em] uppercase mb-4"
+                style={{ fontFamily: "'DM Mono', monospace" }}
+              >
+                Coverage
+              </p>
+              <h2
+                className="text-4xl sm:text-5xl font-extrabold text-white mb-5 leading-tight"
+                style={{ fontFamily: "'Syne', sans-serif" }}
+              >
+                Growing where
+                <br />
+                you drive.
+              </h2>
+              <p className="text-blue-100/45 text-base leading-relaxed mb-8 max-w-md">
+                From metro highways to Tier-2 towns, we're expanding faster than
+                India's EV fleet. New stations come online every week.
+              </p>
+              
+            </div>
+            <div className="relative rounded-2xl overflow-hidden border border-white/8">
+              <img
+                src="/india-map.png"
+                alt="EvGenee India Network"
+                className="w-full object-cover"
+                style={{ filter: "brightness(0.75) saturate(0.8)" }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#000814] via-transparent to-transparent" />
+            </div>
+          </div>
+        </section>
+
+        {/* ── CTA ────────────────────────────────────────────────── */}
+        <section className="px-6 pb-32 max-w-7xl mx-auto">
+          <div className="relative rounded-2xl overflow-hidden border border-white/8">
+            <img
+              src="/city-map-banner.png"
+              alt=""
+              aria-hidden
+              className="absolute inset-0 w-full h-full object-cover opacity-[0.08]"
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(16,185,129,0.07) 100%)",
+              }}
+            />
+            <div className="relative z-10 p-10 sm:p-16 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-10">
+              <div>
+                <p
+                  className="text-green-400/60 text-xs tracking-[0.2em] uppercase mb-4"
+                  style={{ fontFamily: "'DM Mono', monospace" }}
+                >
+                  Start for free
+                </p>
+                <h2
+                  className="text-4xl sm:text-5xl font-extrabold text-white leading-tight"
+                  style={{ fontFamily: "'Syne', sans-serif" }}
+                >
+                  Your next trip,
+                  <br />
+                  <span
+                    style={{
+                      background:
+                        "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  >
+                    fully charged.
+                  </span>
+                </h2>
+              </div>
+              <Link to="/auth/register" className="shrink-0">
+                <button className="flex items-center gap-3 bg-green-500 hover:bg-green-400 text-black font-bold px-8 py-4 rounded-full transition-colors text-base">
+                  <BatteryCharging className="h-5 w-5" />
+                  Create free account
+                </button>
+              </Link>
+            </div>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 pt-16 pb-8 md:pt-24 md:pb-12 bg-[#000814] border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-12 mb-16">
-            {/* Brand Section */}
-            <div className="space-y-6 text-center md:text-left border-b border-white/5 pb-10 md:border-b-0 md:pb-0">
-              <div className="flex items-center justify-center md:justify-start gap-2">
-                <div className="bg-primary/20 p-2 rounded-xl backdrop-blur-md border border-primary/30 shadow-[var(--shadow-glow)]">
-                  <Zap className="h-6 w-6 text-primary" fill="currentColor" />
+      {/* ── Footer ─────────────────────────────────────────────── */}
+      <footer className="relative z-10 border-t border-white/5 pt-16 pb-10 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 mb-16">
+            <div className="col-span-2 lg:col-span-1 space-y-5">
+              <div className="flex items-center gap-2.5">
+                <div className="bg-green-500/15 p-2 rounded-xl border border-green-500/25">
+                  <Zap className="h-5 w-5 text-green-400" fill="currentColor" />
                 </div>
-                <span className="text-2xl font-bold tracking-tight text-white">EvGenee</span>
+                <span
+                  className="text-lg font-bold text-white"
+                  style={{ fontFamily: "'Syne', sans-serif" }}
+                >
+                  EvGenee
+                </span>
               </div>
-              <p className="text-blue-100/60 leading-relaxed max-w-sm mx-auto md:mx-0">
-                Empowering the electric revolution with seamless charging solutions. Join our network and drive the future today.
+              <p className="text-blue-100/35 text-sm leading-relaxed">
+                India's fastest-growing EV charging network. Built for drivers
+                who don't have time to wait.
               </p>
-              <div className="flex justify-center md:justify-start gap-4">
-                <SocialIcon icon={<Twitter className="h-5 w-5" />} href="#" />
-                <SocialIcon icon={<Linkedin className="h-5 w-5" />} href="#" />
-                <SocialIcon icon={<Instagram className="h-5 w-5" />} href="#" />
-                <SocialIcon icon={<Github className="h-5 w-5" />} href="#" />
+              <div className="flex gap-3">
+                {[
+                  { icon: <Twitter className="h-4 w-4" />, href: "#" },
+                  { icon: <Linkedin className="h-4 w-4" />, href: "#" },
+                  { icon: <Instagram className="h-4 w-4" />, href: "#" },
+                  { icon: <Github className="h-4 w-4" />, href: "#" },
+                ].map(({ icon, href }, i) => (
+                  <a
+                    key={i}
+                    href={href}
+                    className="h-9 w-9 rounded-lg border border-white/10 flex items-center justify-center text-white/30 hover:text-green-400 hover:border-green-500/30 transition-colors"
+                  >
+                    {icon}
+                  </a>
+                ))}
               </div>
             </div>
 
-            {/* Quick Links */}
-            <div className="text-center md:text-left border-b border-white/5 pb-10 md:border-b-0 md:pb-0">
-              <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Product</h4>
-              <ul className="space-y-4">
-                <FooterLink label="Find Stations" href="#" />
-                <FooterLink label="Pricing Plans" href="#" />
-                <FooterLink label="For Business" href="#" />
-                <FooterLink label="Mobile App" href="#" />
-              </ul>
-            </div>
+            {[
+              {
+                heading: "Product",
+                links: ["Find stations", "Pricing", "For business", "Mobile app"],
+              },
+              {
+                heading: "Company",
+                links: ["Blog", "Partners", "Careers", "Press"],
+              },
+            ].map(({ heading, links }) => (
+              <div key={heading}>
+                <p
+                  className="text-white/25 text-xs tracking-widest uppercase mb-5"
+                  style={{ fontFamily: "'DM Mono', monospace" }}
+                >
+                  {heading}
+                </p>
+                <ul className="space-y-3">
+                  {links.map((l) => (
+                    <li key={l}>
+                      <a
+                        href="#"
+                        className="text-blue-100/40 text-sm hover:text-white transition-colors"
+                      >
+                        {l}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
 
-            {/* Support */}
-            <div className="text-center md:text-left border-b border-white/5 pb-10 md:border-b-0 md:pb-0">
-              <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Resources</h4>
-              <ul className="space-y-4">
-                <FooterLink label="Help Center" href="#" />
-                <FooterLink label="Safety Guidelines" href="#" />
-                <FooterLink label="Partner Program" href="#" />
-                <FooterLink label="Blog" href="#" />
-              </ul>
-            </div>
-
-            {/* Contact Section */}
-            <div className="text-center md:text-left">
-              <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Contact Us</h4>
-              <ul className="space-y-4 flex flex-col items-center md:items-start">
-                <li className="flex items-center gap-3 text-blue-100/60 hover:text-primary transition-colors cursor-pointer group">
-                  <div className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary/50 transition-colors">
-                    <Mail className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="text-sm">support@evgenee.com</span>
-                </li>
-                <li className="flex items-center gap-3 text-blue-100/60 hover:text-primary transition-colors cursor-pointer group">
-                  <div className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary/50 transition-colors">
-                    <Phone className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="text-sm">+1 (555) EV-GENEE</span>
-                </li>
-                <li className="flex items-center gap-3 text-blue-100/60 hover:text-primary transition-colors cursor-pointer group">
-                  <div className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary/50 transition-colors">
-                    <MapPin className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="text-sm">Innovation Way, Tech City</span>
-                </li>
+            <div>
+              <p
+                className="text-white/25 text-xs tracking-widest uppercase mb-5"
+                style={{ fontFamily: "'DM Mono', monospace" }}
+              >
+                Contact
+              </p>
+              <ul className="space-y-3">
+                {[
+                  { icon: <Mail className="h-3.5 w-3.5" />, text: "support@evgenee.in" },
+                  { icon: <Phone className="h-3.5 w-3.5" />, text: "+91 79095 47056" },
+                  { icon: <MapPin className="h-3.5 w-3.5" />, text: "Bhopal, India" },
+                ].map(({ icon, text }) => (
+                  <li
+                    key={text}
+                    className="flex items-center gap-2.5 text-blue-100/40 text-sm hover:text-white transition-colors cursor-pointer"
+                  >
+                    <span className="text-green-400/60">{icon}</span>
+                    {text}
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
 
-          <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-blue-100/40 pb-[var(--safe-bottom)] mb-4">
-            <p className="text-xs font-semibold tracking-widest uppercase">
-              © {new Date().getFullYear()} EvGenee Network
+          <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p
+              className="text-white/20 text-xs"
+              style={{ fontFamily: "'DM Mono', monospace" }}
+            >
+              © {new Date().getFullYear()} EvGenee Network Pvt. Ltd.
             </p>
-            <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-xs font-medium">
-              <a href="#" className="hover:text-primary transition-colors">Privacy</a>
-              <a href="#" className="hover:text-primary transition-colors">Terms</a>
-              <a href="#" className="hover:text-primary transition-colors">Cookies</a>
+            <div className="flex gap-6 text-white/20 text-xs">
+              {["Privacy", "Terms", "Cookies"].map((l) => (
+                <a key={l} href="#" className="hover:text-white/50 transition-colors">
+                  {l}
+                </a>
+              ))}
             </div>
           </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-
-function SocialIcon({ icon, href }: { icon: React.ReactNode, href: string }) {
-  return (
-    <a 
-      href={href} 
-      className="h-11 w-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-blue-100/60 hover:text-primary hover:border-primary/50 hover:bg-primary/10 transition-all shadow-sm hover:shadow-[var(--shadow-glow)]"
-    >
-      {icon}
-    </a>
-  );
-}
-
-function FooterLink({ label, href }: { label: string, href: string }) {
-  return (
-    <li>
-      <a 
-        href={href} 
-        className="text-blue-100/60 hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2 group text-sm font-medium"
-      >
-        <span className="h-1 w-1 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity hidden md:block" />
-        {label}
-      </a>
-    </li>
-  );
-}
-
-
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
-  return (
-    <div className="bg-card/50 border border-border/50 backdrop-blur-sm p-4 rounded-2xl hover:bg-card hover:border-primary/30 transition-colors shadow-sm hover:shadow-[var(--shadow-glow)] group">
-      <div className="bg-primary/10 w-10 h-10 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-        {icon}
-      </div>
-      <h3 className="text-lg font-bold mb-1">{title}</h3>
-      <p className="text-muted-foreground text-sm leading-normal">
-        {description}
-      </p>
     </div>
   );
 }
