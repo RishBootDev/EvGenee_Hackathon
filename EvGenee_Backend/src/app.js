@@ -6,6 +6,7 @@ const { errorHandler } = require('./middlewares/error.middleware');
 const stationRoutes = require('./routes/station.routes');
 const bookingRoutes = require('./routes/booking.routes');
 const userRoutes = require('./routes/user.routes');
+const platformSettingsRoutes = require('./routes/platformSettings.routes');
 
 const app = express();
 
@@ -38,9 +39,12 @@ app.get('/health', (req, res) => {
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/stations', stationRoutes);
 app.use('/api/v1/bookings', bookingRoutes);
+app.use('/api/v1/platform-settings', platformSettingsRoutes);
 
 const paymentRoutes = require('./routes/payment.route');
+const aiRoutes = require('./routes/ai.routes');
 app.use('/api/v1/payment', paymentRoutes);
+app.use('/api/v1/ai', aiRoutes);
 
 app.use((req, res) => {
     res.status(404).json({

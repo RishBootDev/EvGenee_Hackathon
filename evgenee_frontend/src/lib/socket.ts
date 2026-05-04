@@ -6,9 +6,10 @@ try {
   const url = new URL(API_BASE_URL);
   socketUrl = url.origin;
 } catch (e) {
-  // Fallback to localhost if URL parsing fails
+  
 }
 
 export const socket: Socket = io(socketUrl, {
   autoConnect: false,
+  withCredentials: true,
 });

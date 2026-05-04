@@ -21,7 +21,7 @@ const registerValidation = [
 
     body('role')
         .optional()
-        .isIn(['user', 'StationOwner']).withMessage('Role must be either "user" or "StationOwner"'),
+        .isIn(['user', 'StationOwner','Admin']).withMessage('Role must be either "user" or "StationOwner"'),
 
     body('vehicle')
         .optional()

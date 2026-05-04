@@ -155,3 +155,8 @@ export const PaymentAPI = {
   updatePayment: (d: { orderId: string; paymentId: string; status: string }) =>
     api.post("/payment/update-payment", d),
 };
+
+// ===== AI Voice Assistant =====
+export const AIAPI = {
+  chat: (d: { message: string; threadId?: string }) => api.post("/ai/chat", d),
+};

@@ -5,6 +5,7 @@ const { PORT } = require('./src/config/config');
 const Connectdb = require('./src/config/db');
 const { initializeSocket } = require('./src/socket/socket.handler');
 const { initializeCronJobs } = require('./src/cron/booking.cron');
+const PlatformSettings = require('./src/models/platformSettings.model');
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -19,12 +20,20 @@ const io = new Server(server, {
 
 app.set('io', io);
 
-// Initialize Socket.IO event handlers
 initializeSocket(io);
 
-// Connect to database and start server
 Connectdb()
-    .then(() => {
+    .then(async () => {
+       
+        const existingSettings = await PlatformSettings.findOne();
+        if (!existingSettings) {
+            await PlatformSettings.create({
+                platformFee: 5,
+                updatedBy: null,
+            });
+            console.log('Platform settings initialized with default 5% fee');
+        }
+
         server.listen(PORT, () => {
             console.log(`\n EV Charging Server running on port ${PORT}`);
 

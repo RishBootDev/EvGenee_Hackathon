@@ -7,6 +7,11 @@ const {
     toggleStationStatus,
     addReview,
     getMyStations,
+    getAllStations,
+    deleteStation,
+    updateStationStatus,
+    suspendStationOwner,
+    getStationByOwner,
 } = require('../controllers/station.controller');
 const { validateToken } = require('../middlewares/auth.middleware');
 const { authorize } = require('../middlewares/authorize.middleware');
@@ -20,6 +25,47 @@ const { handleValidationErrors } = require('../middlewares/validate.middleware')
 const router = express.Router();
 
 router.get('/nearby', nearbyStationValidation, handleValidationErrors, getNearbyStations);
+
+
+router.get(
+    '/admin/all-stations',
+    validateToken,
+    authorize('admin'),
+    getAllStations
+);
+
+
+router.get(
+    '/admin/owner/:ownerId',
+    validateToken,
+    authorize('admin'),
+    getStationByOwner
+);
+
+// Update station status (admin only)
+router.put(
+    '/admin/:stationId/status',
+    validateToken,
+    authorize('admin'),
+    updateStationStatus
+);
+
+// Suspend station (admin only)
+router.put(
+    '/admin/:stationId/suspend',
+    validateToken,
+    authorize('admin'),
+    suspendStationOwner
+);
+
+
+router.delete(
+    '/admin/:stationId',
+    validateToken,
+    authorize('admin'),
+    deleteStation
+);
+
 
 router.post(
     '/add',
