@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Map, Calendar, User, LayoutDashboard, Mic } from "lucide-react";
+import { Map, Calendar, User, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
-/** Event name used to toggle the VoiceAssistant panel from BottomNav */
-export const AI_OPEN_EVENT = "evgenee:ai:open";
+
 
 export function BottomNav() {
   const loc = useLocation();
@@ -17,10 +16,7 @@ export function BottomNav() {
   if (loc.pathname.startsWith("/auth")) return null;
   if (!isAuthed) return null;
 
-  /** Emit a custom event so VoiceAssistant can open itself */
-  const openAI = () => {
-    window.dispatchEvent(new CustomEvent(AI_OPEN_EVENT));
-  };
+
 
   const navItems = [
     { to: "/", label: "Map", icon: Map },
@@ -29,8 +25,8 @@ export function BottomNav() {
     { to: "/profile", label: "Profile", icon: User },
   ];
 
-  // Total columns = nav links + (non-owner AI button)
-  const totalCols = isOwner ? navItems.length : navItems.length + 1;
+  // Total columns = nav links
+  const totalCols = navItems.length;
 
   return (
     <nav
@@ -65,19 +61,7 @@ export function BottomNav() {
           );
         })}
 
-        {/* AI Assistant button — non-owners only */}
-        {!isOwner && (
-          <button
-            onClick={openAI}
-            aria-label="AI Assistant"
-            className="flex flex-col items-center justify-center gap-1 py-2.5 text-xs font-medium transition-colors text-emerald-400"
-          >
-            <div className="h-9 w-9 rounded-full flex items-center justify-center transition-all bg-emerald-500/15 ring-1 ring-emerald-500/30">
-              <Mic className="h-5 w-5" />
-            </div>
-            <span>AI</span>
-          </button>
-        )}
+
       </div>
     </nav>
   );

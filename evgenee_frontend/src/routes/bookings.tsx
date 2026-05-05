@@ -66,8 +66,6 @@ function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("all");
-  const [otpFor, setOtpFor] = useState<Booking | null>(null);
-  const [otp, setOtp] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -142,21 +140,6 @@ function BookingsPage() {
     }
   };
 
-  const checkIn = async () => {
-    if (!otpFor) return;
-    setBusyId(otpFor._id);
-    try {
-      await BookingsAPI.checkIn(otpFor._id, { otp });
-      toast.success("Checked in! Charging started.");
-      setOtpFor(null);
-      setOtp("");
-      load();
-    } catch (e) {
-      toast.error(getApiError(e, "Invalid OTP"));
-    } finally {
-      setBusyId(null);
-    }
-  };
 
   const complete = async (b: Booking) => {
     setBusyId(b._id);
@@ -410,13 +393,6 @@ function BookingsPage() {
                             >
                               <X className="h-3.5 w-3.5 mr-1" />Cancel
                             </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => setOtpFor(b)}
-                              className="bg-gradient-to-r from-green-600 to-green-400 text-white rounded-xl text-xs font-bold"
-                            >
-                              <KeyRound className="h-3.5 w-3.5 mr-1" />Check-in
-                            </Button>
                           </>
                         )}
                         {b.status === "in-progress" && (
@@ -512,15 +488,6 @@ function BookingsPage() {
                 </div>
               </div>
 
-              {selectedBooking.status === "confirmed" && (
-                <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-start gap-3">
-                  <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-bold text-primary uppercase">Check-in Info</p>
-                    <p className="text-sm text-primary/80">Use the 6-digit OTP sent to your email to start the session.</p>
-                  </div>
-                </div>
-              )}
             </div>
           )}
           <DialogFooter>
@@ -529,32 +496,6 @@ function BookingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* OTP Dialog */}
-      <Dialog open={!!otpFor} onOpenChange={(o) => !o && setOtpFor(null)}>
-        <DialogContent className="bg-[#0a1628] border border-white/10 text-white rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-white">Enter Check-in OTP</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-white/40">Enter the 6-digit OTP sent when you booked to start the charging session.</p>
-          <Input
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            maxLength={6}
-            placeholder="000000"
-            className="text-center text-2xl tracking-[0.5em] font-mono h-14 bg-white/5 border-white/10 text-white placeholder:text-white/20"
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOtpFor(null)} className="border-white/10 text-white/60 hover:bg-white/5">Cancel</Button>
-            <Button
-              onClick={checkIn}
-              disabled={otp.length !== 6 || busyId === otpFor?._id}
-              className="bg-gradient-to-r from-green-600 to-green-400 text-white font-bold"
-            >
-              {busyId === otpFor?._id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify & Start"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

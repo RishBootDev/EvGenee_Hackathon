@@ -183,6 +183,12 @@ function StationDetail() {
     };
 
     if (advancePayment > 0) {
+      if (!(window as any).Razorpay) {
+        toast.error("Payment gateway could not be loaded. Please check your internet connection or disable ad-blockers.");
+        setBooking(false);
+        return;
+      }
+
       try {
         const orderRes = await PaymentAPI.createOrder({ amount: advancePayment, currency });
         const order = orderRes.data;
@@ -208,9 +214,9 @@ function StationDetail() {
             }
           },
           prefill: {
-            name: "EvGenee User",
-            email: "user@example.com",
-            contact: "9999999999"
+            name: user?.name || "EvGenee User",
+            email: user?.email || "user@example.com",
+            contact: ""
           },
           theme: {
             color: "#22c55e"
@@ -230,7 +236,7 @@ function StationDetail() {
         });
         rzp.open();
       } catch (e) {
-        toast.error(getApiError(e, "Failed to initiate payment"));
+        toast.error(getApiError(e, "Failed to initiate payment. Please try again."));
         setBooking(false);
       }
     } else {
@@ -300,8 +306,11 @@ function StationDetail() {
             <LayoutDashboard className="h-10 w-10 mx-auto text-primary" />
             <h2 className="font-bold text-lg">Your Station</h2>
             <p className="text-sm text-muted-foreground pb-2">As the owner, you can manage bookings and settings from your dashboard.</p>
-            <Button onClick={() => nav({ to: "/owner" })} className="w-full bg-[image:var(--gradient-primary)] text-primary-foreground">
-              OPEN DASHBOARD
+            <Button 
+              onClick={() => nav({ to: "/owner/stations/$stationId", params: { stationId } })} 
+              className="w-full bg-[image:var(--gradient-primary)] text-primary-foreground font-bold tracking-tight"
+            >
+              VIEW BOOKINGS DASHBOARD
             </Button>
           </div>
         ) : (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Loader2, VolumeX } from 'lucide-react';
 import { socket } from '@/lib/socket';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useLocation } from '@tanstack/react-router';
 import { toast } from 'sonner';
 
 // Type definitions for Web Speech API
@@ -12,8 +12,13 @@ declare global {
   }
 }
 
+import { useAuth } from '@/lib/auth';
+
 export function VoiceAssistant() {
+  const { isAuthed, isOwner } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -26,6 +31,8 @@ export function VoiceAssistant() {
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
+    if (!isAuthed) return;
+
     // Preload voices
     if ('speechSynthesis' in window) {
       window.speechSynthesis.getVoices();
@@ -89,7 +96,7 @@ export function VoiceAssistant() {
     return () => {
       socket.off('ai:voice_response');
     };
-  }, []);
+  }, [isAuthed, navigate]);
 
   const processVoiceInput = (text: string) => {
     if (!text.trim()) return;
@@ -162,8 +169,12 @@ export function VoiceAssistant() {
     }
   };
 
+  const isAllowedPath = location.pathname === '/' || location.pathname === '/bookings';
+
+  if (!isAuthed || !isAllowedPath || isOwner) return null;
+
   return (
-    <div className="fixed bottom-24 right-4 md:bottom-8 md:right-8 z-[999] flex flex-col items-end gap-3 sm:gap-4">
+    <div className="fixed bottom-32 right-4 md:bottom-32 md:right-8 z-[999] flex flex-col items-end gap-3 sm:gap-4">
       
       {isOpen && (
         <div className="bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl border border-white/40 dark:border-zinc-700/50 shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-3xl p-5 w-[calc(100vw-2rem)] sm:w-[360px] animate-in slide-in-from-bottom-8 fade-in duration-500">
@@ -272,23 +283,33 @@ export function VoiceAssistant() {
         </div>
       )}
 
-      {/* Premium Mic Button */}
-      <button
-        onClick={toggleListening}
-        className={`relative group w-16 h-16 rounded-full flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300 hover:-translate-y-1 ${isListening
-          ? 'bg-gradient-to-br from-red-500 to-rose-600 text-white'
-          : 'bg-gradient-to-br from-green-500 to-emerald-600 text-white'
-          }`}
-      >
-        {isListening && (
-          <span className="absolute inset-0 rounded-full animate-ping bg-red-400 opacity-40"></span>
-        )}
-        {isListening ? (
-          <MicOff className="w-7 h-7 relative z-10" />
-        ) : (
-          <Mic className="w-7 h-7 relative z-10 group-hover:scale-110 transition-transform duration-300" />
-        )}
-      </button>
+      {/* Premium Mic Button & Label */}
+      <div className="flex flex-col items-center gap-2 group">
+        <button
+          onClick={toggleListening}
+          className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 hover:-translate-y-1 shadow-[0_8px_30px_rgba(0,0,0,0.3)] border border-white/10 backdrop-blur-xl ${
+            isListening
+              ? 'bg-gradient-to-br from-red-500 to-rose-600 text-white'
+              : 'bg-[#000814]/90 text-[#22c55e]'
+            }`}
+        >
+          {isListening && (
+            <span className="absolute inset-0 rounded-full animate-ping bg-red-400 opacity-40"></span>
+          )}
+          {isListening ? (
+            <MicOff className="w-6 h-6 relative z-10" />
+          ) : (
+            <Mic className="w-6 h-6 relative z-10 group-hover:scale-110 transition-transform duration-300" />
+          )}
+        </button>
+        
+        <span 
+          className="text-[9px] font-black tracking-[0.3em] uppercase text-zinc-600 transition-all duration-500 group-hover:tracking-[0.4em] group-hover:text-[#22c55e] opacity-80"
+          style={{ fontFamily: "'Syne', sans-serif" }}
+        >
+          Fastrack
+        </span>
+      </div>
     </div>
   );
 }

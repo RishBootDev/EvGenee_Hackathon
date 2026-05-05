@@ -93,14 +93,28 @@ function FitRoute({ coords }: { coords: [number, number][] }) {
 
 // ── Popup Card ────────────────────────────────────────────────────────────────
 function StationPopupCard({
-  station, navigate, userLocation, onDirections, isOwner
+  station, navigate, userLocation, onDirections, isMyStation
 }: {
   station: Station; navigate: NavigateFn;
   userLocation?: [number, number] | null;
   onDirections: (s: Station) => void;
-  isOwner?: boolean;
+  isMyStation?: boolean;
 }) {
-  const [lng, lat] = station.location.coordinates;
+  const [roadDist, setRoadDist] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!userLocation) return;
+    const [sLng, sLat] = station.location.coordinates;
+    fetchRoutes(userLocation, [sLat, sLng], "driving")
+      .then(routes => {
+        if (routes.length > 0) {
+          setRoadDist(routes[0].distanceKm);
+        }
+      })
+      .catch(() => {});
+  }, [userLocation, station.location.coordinates]);
+
+  const displayDist = roadDist !== null ? roadDist : station.distanceKm;
   const avail = station.isOpen && station.availablePorts > 0;
   const minPrice = station.pricing?.length ? Math.min(...station.pricing.map((p) => p.priceperKWh)) : 0;
   const sym = station.pricing?.[0]?.currency === "INR" ? "₹" : "$";
@@ -138,19 +152,19 @@ function StationPopupCard({
             <p style={{ color: "#94a3b8", fontSize: 10, margin: 0 }}>rating</p>
           </div>
         )}
-        {station.distanceKm !== undefined && (
+        {displayDist !== undefined && (
           <div style={{ flex: 1, padding: "8px 4px", textAlign: "center" }}>
             <p style={{ fontWeight: 800, color: "#1e293b", fontSize: 14, margin: 0 }}>
-              {station.distanceKm < 1 ? `${(station.distanceKm * 1000).toFixed(0)}m` : `${station.distanceKm.toFixed(1)}km`}
+              {displayDist < 1 ? `${(displayDist * 1000).toFixed(0)}m` : `${displayDist.toFixed(1)}km`}
             </p>
-            <p style={{ color: "#94a3b8", fontSize: 10, margin: 0 }}>away</p>
+            <p style={{ color: "#94a3b8", fontSize: 10, margin: 0 }}>{roadDist !== null ? "by road" : "away"}</p>
           </div>
         )}
       </div>
-      <div style={{ padding: 10, display: "grid", gridTemplateColumns: isOwner ? "1fr" : "1fr 1fr", gap: 8 }}>
-        {isOwner ? (
+      <div style={{ padding: 10, display: "grid", gridTemplateColumns: isMyStation ? "1fr" : "1fr 1fr", gap: 8 }}>
+        {isMyStation ? (
           <button
-            onClick={() => navigate({ to: "/owner" })}
+            onClick={() => navigate({ to: "/owner/stations/$stationId", params: { stationId: station._id } })}
             style={{ height: 36, background: "#1e293b", color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 12, cursor: "pointer" }}
           >
             View Bookings Dashboard
@@ -182,9 +196,9 @@ function StationPopupCard({
 }
 
 // ── Station Marker ────────────────────────────────────────────────────────────
-function StationMarker({ station, isSelected, onSelect, navigate, userLocation, onDirections, isOwner }: {
+function StationMarker({ station, isSelected, onSelect, navigate, userLocation, onDirections, isMyStation }: {
   station: Station; isSelected: boolean; onSelect: (s: Station) => void; navigate: NavigateFn;
-  userLocation?: [number, number] | null; onDirections: (s: Station) => void; isOwner?: boolean;
+  userLocation?: [number, number] | null; onDirections: (s: Station) => void; isMyStation?: boolean;
 }) {
   const [lng, lat] = station.location.coordinates;
   const avail = station.isOpen && station.availablePorts > 0;
@@ -210,7 +224,7 @@ function StationMarker({ station, isSelected, onSelect, navigate, userLocation, 
       }}
     >
       <Popup className="ev-station-popup" closeButton={false} autoPan={false} keepInView={false} minWidth={258} maxWidth={258} offset={[0, -10]}>
-        <StationPopupCard station={station} navigate={navigate} userLocation={userLocation} onDirections={onDirections} isOwner={isOwner} />
+        <StationPopupCard station={station} navigate={navigate} userLocation={userLocation} onDirections={onDirections} isMyStation={isMyStation} />
       </Popup>
     </Marker>
   );
@@ -225,7 +239,7 @@ export default function StationsMapInner({
   selectedId?: string | null; onCenterChange?: (c: [number, number]) => void;
   userLocation?: [number, number] | null; navigate: NavigateFn;
 }) {
-  const { isOwner } = useAuth();
+  const { user } = useAuth();
   const mapRef = useRef<L.Map | null>(null);
 
   // ── Routing state ──
@@ -376,10 +390,13 @@ export default function StationsMapInner({
           return <Marker position={[lat, lng]} icon={destIcon} />;
         })()}
 
-        {stations.map((s) => (
-          <StationMarker key={s._id} station={s} isSelected={selectedId === s._id}
-            onSelect={onSelect} navigate={navigate} userLocation={userLocation} onDirections={handleDirections} isOwner={isOwner} />
-        ))}
+        {stations.map((s) => {
+          const isMyStation = !!(s && user && (typeof s.ownerofStation === "string" ? s.ownerofStation === user.id : s.ownerofStation?._id === user.id));
+          return (
+            <StationMarker key={s._id} station={s} isSelected={selectedId === s._id}
+              onSelect={onSelect} navigate={navigate} userLocation={userLocation} onDirections={handleDirections} isMyStation={isMyStation} />
+          );
+        })}
       </MapContainer>
 
       {/* Directions panel — rendered via portal at document.body */}
@@ -428,11 +445,23 @@ export default function StationsMapInner({
 
             {/* Bottom Status Strip */}
             <div style={{
-              position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)",
-              zIndex: 99999, background: "#0a0f1a", border: "1px solid rgba(59,130,246,0.35)",
-              borderRadius: 50, padding: "10px 20px", display: "flex", alignItems: "center",
-              gap: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", fontFamily: "system-ui,sans-serif",
+              position: "fixed", 
+              bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)", 
+              left: "50%", 
+              transform: "translateX(-50%)",
+              zIndex: 99999, 
+              background: "#0a0f1a", 
+              border: "1px solid rgba(59,130,246,0.35)",
+              borderRadius: 50, 
+              padding: "10px 20px", 
+              display: "flex", 
+              alignItems: "center",
+              gap: 14, 
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5)", 
+              fontFamily: "system-ui,sans-serif",
               whiteSpace: "nowrap",
+              width: "max-content",
+              maxWidth: "calc(100vw - 24px)",
             }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#3b82f6", flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>
