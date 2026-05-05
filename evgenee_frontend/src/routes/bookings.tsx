@@ -35,6 +35,32 @@ const iconColor: Record<string, string> = {
   "no-show": "from-red-600 to-red-400",
 };
 
+function PendingCountdown({ createdAt }: { createdAt: string }) {
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const created = new Date(createdAt).getTime();
+      const expiresAt = created + 10 * 60 * 1000;
+      const now = new Date().getTime();
+      return Math.max(0, Math.floor((expiresAt - now) / 1000));
+    };
+
+    setTimeLeft(calculateTimeLeft());
+    const interval = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [createdAt]);
+
+  const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+  const s = (timeLeft % 60).toString().padStart(2, '0');
+
+  if (timeLeft === 0) return <span className="text-destructive font-bold text-[10px]">Expired</span>;
+  return <span className="text-destructive font-bold text-[10px] animate-pulse">⏱ {m}:{s} left</span>;
+}
+
 function BookingsPage() {
   const { isAuthed, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -207,6 +233,81 @@ function BookingsPage() {
     }
   };
 
+  const payAdvance = async (b: Booking) => {
+    setBusyId(b._id);
+
+    const executeConfirmAdvance = async () => {
+      try {
+        await BookingsAPI.confirmAdvance(b._id);
+        toast.success("Advance paid! Booking confirmed.");
+        setBusyId(null);
+        load();
+      } catch (e) {
+        toast.error(getApiError(e, "Confirm failed"));
+        setBusyId(null);
+      }
+    };
+
+    const advancePayment = parseFloat((b.grandTotal * 0.20).toFixed(2));
+
+    if (advancePayment > 0) {
+      try {
+        const station = typeof b.station === 'object' ? (b.station as Station) : null;
+        const pricing = station?.pricing?.find(p => p.connectorType === b.connectorType) || station?.pricing?.[0];
+        const currency = pricing?.currency || "INR";
+
+        const orderRes = await PaymentAPI.createOrder({ amount: advancePayment, currency });
+        const order = orderRes.data;
+
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || "",
+          amount: order.amount,
+          currency: order.currency,
+          name: "EvGenee Charging",
+          description: `Advance payment for ${station?.name || 'Booking'}`,
+          order_id: order.id,
+          handler: async function (response: any) {
+            try {
+              await PaymentAPI.updatePayment({
+                orderId: order.id,
+                paymentId: response.razorpay_payment_id,
+                status: "paid"
+              });
+              await executeConfirmAdvance();
+            } catch (err) {
+              toast.error("Failed to verify payment");
+              setBusyId(null);
+            }
+          },
+          prefill: {
+            name: typeof b.user === 'object' ? b.user.name : "EvGenee User",
+            email: typeof b.user === 'object' ? b.user.email : "user@example.com",
+            contact: "9999999999"
+          },
+          theme: { color: "#22c55e" },
+          modal: {
+            ondismiss: function() {
+              toast.error("Payment cancelled. Please pay to confirm.");
+              setBusyId(null);
+            }
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on("payment.failed", function (response: any) {
+          toast.error(`Payment Failed: ${response.error.description}`);
+          setBusyId(null);
+        });
+        rzp.open();
+      } catch (e) {
+        toast.error(getApiError(e, "Failed to initiate payment"));
+        setBusyId(null);
+      }
+    } else {
+      await executeConfirmAdvance();
+    }
+  };
+
   return (
     <div
       className="min-h-screen bg-[#000814] text-white"
@@ -262,9 +363,14 @@ function BookingsPage() {
                           </p>
                         </div>
                       </div>
-                      <span className={`text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wide shrink-0 ${statusColor[b.status]}`}>
-                        {b.status}
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wide shrink-0 ${statusColor[b.status]}`}>
+                          {b.status}
+                        </span>
+                        {b.status === "pending" && b.createdAt && (
+                          <PendingCountdown createdAt={b.createdAt} />
+                        )}
+                      </div>
                     </div>
 
                     {/* Date/time row */}
@@ -321,6 +427,16 @@ function BookingsPage() {
                             className="bg-gradient-to-r from-green-600 to-green-400 text-white rounded-xl text-xs font-bold"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5 mr-1" />Pay Balance & Complete
+                          </Button>
+                        )}
+                        {b.status === "pending" && (
+                          <Button
+                            size="sm"
+                            onClick={() => payAdvance(b)}
+                            disabled={isBusy}
+                            className="bg-gradient-to-r from-red-600 to-red-400 text-white rounded-xl text-xs font-bold"
+                          >
+                            <Zap className="h-3.5 w-3.5 mr-1" />Pay 20% Advance
                           </Button>
                         )}
                       </div>

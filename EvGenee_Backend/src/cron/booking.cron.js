@@ -65,14 +65,14 @@ const initializeCronJobs = (io) => {
     });
 
  
-    cron.schedule('*/5 * * * *', async () => {
+    cron.schedule('* * * * *', async () => {
         try {
-            const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+            const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 
             const expired = await Booking.updateMany(
                 {
                     status: 'pending',
-                    createdAt: { $lt: fifteenMinutesAgo },
+                    createdAt: { $lt: tenMinutesAgo },
                 },
                 {
                     $set: { status: 'cancelled', cancellationReason: 'Auto-cancelled: Booking expired' },
@@ -87,7 +87,7 @@ const initializeCronJobs = (io) => {
         }
     });
 
-    console.log('[CRON] Booking lifecycle cron jobs initialized');
+    console.log('CRON Booking lifecycle cron jobs initialized');
 };
 
 module.exports = { initializeCronJobs };

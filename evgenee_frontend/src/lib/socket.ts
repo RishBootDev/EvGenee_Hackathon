@@ -1,5 +1,5 @@
 import { io, Socket } from "socket.io-client";
-import { API_BASE_URL } from "./api";
+import { API_BASE_URL, tokenStore } from "./api";
 
 let socketUrl = "http://localhost:5000";
 try {
@@ -12,4 +12,7 @@ try {
 export const socket: Socket = io(socketUrl, {
   autoConnect: false,
   withCredentials: true,
+  auth: (cb) => {
+    cb({ token: tokenStore.get() });
+  }
 });

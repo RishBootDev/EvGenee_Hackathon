@@ -3,18 +3,12 @@ const { z } = require("zod");
 const { ChatGroq } = require("@langchain/groq");
 const { createReactAgent } = require("@langchain/langgraph/prebuilt");
 const { MemorySaver } = require("@langchain/langgraph");
-const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
+const { HumanMessage, SystemMessage, AIMessage } = require("@langchain/core/messages");
 const Station = require("../models/station.model");
 const Booking = require("../models/booking.model");
-const PlatformSettings = require("../models/platformSettings.model");
-const nodemailer = require('nodemailer');
-const { NODEMAILER_USER, NODEMAILER_PASS, NODEMAILER_PORT } = require('../config/config');
+const MessageModel = require("../models/message.model");
+const { GROQ_API_KEY, PLATFORM_FEE_PERCENTAGE } = require('../config/config');
 const axios = require("axios");
-
-const generateOtp = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
-
 const memory = new MemorySaver();
 
 async function geocodeLocation(locationStr) {
@@ -27,6 +21,23 @@ async function geocodeLocation(locationStr) {
     return null;
   } catch (err) {
     console.error("Geocoding error:", err.message);
+    return null;
+  }
+}
+async function getRoadDistance(startCoords, endCoords) {
+  try {
+    const url = `http://router.project-osrm.org/route/v1/driving/${startCoords[0]},${startCoords[1]};${endCoords[0]},${endCoords[1]}?overview=false`;
+    const response = await axios.get(url);
+    if (response.data && response.data.routes && response.data.routes.length > 0) {
+      const route = response.data.routes[0];
+      return {
+        distanceKm: (route.distance / 1000).toFixed(2),
+        durationMins: (route.duration / 60).toFixed(1)
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error("OSRM error:", err.message);
     return null;
   }
 }
@@ -44,7 +55,7 @@ const isOverlapping = (startA, endA, startB, endB) => {
   return sA < eB && sB < eA;
 };
 
-const findBestStationTool = tool(
+const findBestStationTool = tool(z
   async ({ location, date, startTime, endTime, chargerType }) => {
     try {
       const coords = await geocodeLocation(location);
@@ -54,7 +65,7 @@ const findBestStationTool = tool(
         location: {
           $near: {
             $geometry: { type: "Point", coordinates: coords },
-            $maxDistance: 40000 
+            $maxDistance: 400000
           }
         }
       }).limit(5);
@@ -63,20 +74,22 @@ const findBestStationTool = tool(
         return JSON.stringify({ error: `I couldn't find any charging stations within 40km of ${location}.` });
       }
 
-      const queryDate = new Date(date);
+      let queryDate = new Date(date);
+      if (isNaN(queryDate.valueOf())) {
+        queryDate = new Date(); 
+      }
       queryDate.setHours(0, 0, 0, 0);
-
       let result = "";
       let foundAvailable = false;
 
       for (const st of stations) {
-        // Check if station supports the charger type
+
         if (!st.typeOfConnectors.includes(chargerType)) {
            result += ` ${st.name} in ${st.address.city} does NOT support ${chargerType} (Available: ${st.typeOfConnectors.join(', ')}).\n`;
            continue;
         }
 
-        // Check if open
+        
         if (!st.isOpen) {
            result += ` ${st.name} in ${st.address.city} is currently CLOSED.\n`;
            continue;
@@ -86,7 +99,6 @@ const findBestStationTool = tool(
           station: st._id,
           date: queryDate,
           status: { $in: ['pending', 'confirmed', 'in-progress'] },
-          connectorType: chargerType
         });
 
 
@@ -98,19 +110,24 @@ const findBestStationTool = tool(
         }
 
         if (overlapping < st.availablePorts) {
-          result += ` ${st.name} (ID: ${st._id}) in ${st.address.city} is AVAILABLE from ${startTime} to ${endTime}.\n`;
+          const roadInfo = await getRoadDistance(coords, st.location.coordinates);
+          let distanceStr = "";
+          if (roadInfo) {
+            distanceStr = ` (approx. ${roadInfo.distanceKm} KM, ${roadInfo.durationMins} mins away by road)`;
+          }
+          result += ` ${st.name}${distanceStr} in ${st.address.city} is AVAILABLE from ${startTime} to ${endTime}.\n`;
           foundAvailable = true;
           break;
         } else {
-          // Find alternative slots (e.g. shift by 1 hour forward or backward)
-          result += ` ${st.name} is FULLY BOOKED at that time. `;
+          
+          result += `${st.name} is FULLY BOOKED at that time. `;
 
 
           const reqStartMins = timeToMinutes(startTime);
           const duration = timeToMinutes(endTime) - reqStartMins;
 
           let altFound = false;
-
+      // i am finding alt hour
           for (let offset = 60; offset <= 240; offset += 60) {
             const altStartMins = reqStartMins + offset;
             const altEndMins = altStartMins + duration;
@@ -135,17 +152,22 @@ const findBestStationTool = tool(
         }
       }
 
-      const stationsData = stations.map(st => ({
-        id: st._id,
-        name: st.name,
-        city: st.address.city,
-        isOpen: st.isOpen,
-        totalPorts: st.totalPorts,
-        availablePorts: st.availablePorts,
-        chargerTypes: st.typeOfConnectors,
-        chargingSpeed: st.chargingSpeed,
-        pricing: st.pricing,
-        isCompatible: st.typeOfConnectors.includes(chargerType)
+      const stationsData = await Promise.all(stations.map(async (st) => {
+        const roadInfo = await getRoadDistance(coords, st.location.coordinates);
+        return {
+          id: st._id,
+          name: st.name,
+          city: st.address.city,
+          isOpen: st.isOpen,
+          totalPorts: st.totalPorts,
+          availablePorts: st.availablePorts,
+          chargerTypes: st.typeOfConnectors,
+          chargingSpeed: st.chargingSpeed,
+          pricing: st.pricing,
+          isCompatible: st.typeOfConnectors.includes(chargerType),
+          roadDistance: roadInfo ? roadInfo.distanceKm : null,
+          travelTime: roadInfo ? roadInfo.durationMins : null
+        };
       }));
 
       return JSON.stringify({
@@ -177,19 +199,21 @@ const createBookingTool = (userInfo) => tool(
       const station = await Station.findById(stationId);
       if (!station) return "Station not found.";
 
-      const bookingDate = new Date(date);
+      let bookingDate = new Date(date);
+      if (isNaN(bookingDate.valueOf())) {
+        bookingDate = new Date(); 
+      }
       bookingDate.setHours(0, 0, 0, 0);
 
       const requestedStart = timeToMinutes(startTime);
       const requestedEnd = timeToMinutes(endTime);
       const durationMinutes = requestedEnd - requestedStart;
 
-      // Re-validate availability to avoid conflict
+      
       const existingBookings = await Booking.find({
         station: stationId,
         date: bookingDate,
         status: { $in: ['pending', 'confirmed', 'in-progress'] },
-        connectorType: chargerType
       });
       
       let overlapping = 0;
@@ -209,15 +233,9 @@ const createBookingTool = (userInfo) => tool(
       const estimatedKWh = parseFloat((station.chargingSpeed * durationHours).toFixed(2));
       const totalCost = parseFloat((estimatedKWh * pricePerKWh).toFixed(2));
 
-      const settings = await PlatformSettings.findOne();
-      const platformFeePercentage = settings ? settings.platformFee : 5;
+      const platformFeePercentage = PLATFORM_FEE_PERCENTAGE;
       const platformFee = parseFloat(((totalCost * platformFeePercentage) / 100).toFixed(2));
       const grandTotal = parseFloat((totalCost + platformFee).toFixed(2));
-
-      const otp = generateOtp();
-      const otpExpiresAt = new Date(bookingDate);
-      const [endH, endM] = endTime.split(':').map(Number);
-      otpExpiresAt.setHours(endH, endM, 0, 0);
 
       const booking = await Booking.create({
         user: userInfo.userId,
@@ -231,33 +249,13 @@ const createBookingTool = (userInfo) => tool(
         totalCost,
         platformFee,
         grandTotal,
-        status: 'confirmed',
-        otp,
-        otpExpiresAt,
-      });
-
-      const transporter = nodemailer.createTransport({
-        secure: true,
-        host: "smtp.gmail.com",
-        port: NODEMAILER_PORT,
-        auth: {
-          user: NODEMAILER_USER,
-          pass: NODEMAILER_PASS
-        }
-      });
-
-      await transporter.sendMail({
-        to: userInfo.email,
-        subject: "Your EV Charging Booking OTP",
-        html: `<p>Dear ${userInfo.name},</p>
-        <p>Your booking for station <strong>${station.name}</strong> on <strong>${date}</strong> from <strong>${startTime}</strong> to <strong>${endTime}</strong> has been confirmed.</p>
-        <p>Your OTP for check-in is: <strong>${otp}</strong></p>`
+        status: 'pending',
       });
 
       return JSON.stringify({
         success: true,
         bookingId: booking._id,
-        message: "Booking created successfully. Redirecting to payment..."
+        message: "Booking is pending. User must pay advance within 10 minutes."
       });
     } catch (err) {
       console.error("Booking Tool Error:", err);
@@ -277,23 +275,35 @@ const createBookingTool = (userInfo) => tool(
   }
 );
 
-const systemPrompt = new SystemMessage(`You are EvGenee, a helpful, polite, and efficient voice assistant for EV Charging Station bookings.
+const getSystemPrompt = () => {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US');
+  
+  return new SystemMessage(`You are EvGenee, a helpful, polite, and efficient voice assistant for EV Charging Station bookings.
+
+CRITICAL CONTEXT:
+Today is ${dateStr}. The current time is ${timeStr}.
+Do not allow users to book time slots that have already passed today or dates in the past. If they ask for "today" or a time that has already passed, politely inform them and ask for a valid future time.
 
 FLOW:
 1. GATHER: Ensure you have Location, Date, Start Time, End Time/Duration, and Charger Type. Ask clarifying questions naturally.
 2. SEARCH: Once you have all 5, call 'find_best_station'.
 3. SUGGEST: Suggest the available station(s) found. Mention name and city.
 4. CONFIRM & BOOK: If the user says "Yes", "Confirm", or "Book it", call 'create_booking' using the stationId and details from the search results.
+5. Do not provide long long answers and do not use special characters in your response. provide consise and perfect output also try to understand his/her intent.
 
 CRITICAL INSTRUCTIONS:
 - Do not use markdown (asterisks, etc.) in your final response.
-- When 'create_booking' is successful, tell the user their booking is confirmed and they are being redirected to payment.
+- When 'create_booking' is successful, tell the user their booking is reserved (pending) and they MUST go to My Bookings and pay the advance within 10 minutes to confirm it, or it will be auto-cancelled.
 - Be concise and friendly.`);
+};
 
 function createVoiceAgent(userInfo) {
   const llm = new ChatGroq({
-    modelName: "llama-3.1-70b-versatile",
+    model: "llama-3.3-70b-versatile",
     temperature: 0.1,
+    apiKey: GROQ_API_KEY,
   });
 
   const tools = [findBestStationTool, createBookingTool(userInfo)];
@@ -302,7 +312,7 @@ function createVoiceAgent(userInfo) {
     llm,
     tools,
     checkpointSaver: memory,
-    messageModifier: systemPrompt,
+    messageModifier: getSystemPrompt(),
   });
 
   return agent;
@@ -310,16 +320,40 @@ function createVoiceAgent(userInfo) {
 
 async function processVoiceChat(message, threadId, userInfo) {
   try {
+    const history = await MessageModel.find({ threadId }).sort({ createdAt: 1 });
+    const formattedHistory = history.map(msg => {
+      if (msg.role === 'user') return new HumanMessage(msg.content);
+      return new AIMessage(msg.content);
+    });
+
+    await MessageModel.create({
+      threadId,
+      user: userInfo.userId,
+      role: 'user',
+      content: message
+    });
+
     const voiceAgent = createVoiceAgent(userInfo);
+    const messagesToInvoke = [...formattedHistory, new HumanMessage(message)];
+    
     const response = await voiceAgent.invoke(
-      { messages: [new HumanMessage(message)] },
+      { messages: messagesToInvoke },
       { configurable: { thread_id: threadId } }
     );
 
     const aiMessages = response.messages.filter(m => m._getType() === "ai");
     const lastMessage = aiMessages[aiMessages.length - 1];
 
-    // Check for bookingId in tool outputs
+    if (lastMessage && lastMessage.content) {
+      await MessageModel.create({
+        threadId,
+        user: userInfo.userId,
+        role: 'ai',
+        content: lastMessage.content
+      });
+    }
+
+    
     let bookingId = null;
     const toolMessages = response.messages.filter(m => m._getType() === "tool");
     for (const tm of toolMessages) {
@@ -329,7 +363,7 @@ async function processVoiceChat(message, threadId, userInfo) {
           bookingId = content.bookingId;
         }
       } catch (e) {
-        // Not JSON or not a booking response
+        console.log(e);
       }
     }
 
@@ -341,7 +375,7 @@ async function processVoiceChat(message, threadId, userInfo) {
       };
     }
 
-    // Check for station data in tool outputs
+   
     let stations = null;
     for (const tm of toolMessages) {
       try {

@@ -147,6 +147,7 @@ export const BookingsAPI = {
   cancel: (id: string, d?: { reason?: string }) => api.post(`/bookings/${id}/cancel`, d ?? {}),
   checkIn: (id: string, d: { otp: string }) => api.post(`/bookings/${id}/check-in`, d),
   complete: (id: string) => api.post(`/bookings/${id}/complete`),
+  confirmAdvance: (id: string) => api.post(`/bookings/${id}/confirm-advance`),
 };
 
 // ===== Payments =====

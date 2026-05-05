@@ -9,6 +9,7 @@ const {
     completeBooking,
     getStationBookings,
     validateBooking,
+    confirmAdvancePayment,
 } = require('../controllers/booking.controller');
 const { validateToken } = require('../middlewares/auth.middleware');
 const { authorize } = require('../middlewares/authorize.middleware');
@@ -17,6 +18,7 @@ const {
     cancelBookingValidation,
     checkAvailabilityValidation,
 } = require('../validations/booking.validation');
+
 const { handleValidationErrors } = require('../middlewares/validate.middleware');
 
 const router = express.Router();
@@ -28,15 +30,12 @@ router.post('/create', createBookingValidation, handleValidationErrors, createBo
 router.get('/availability', checkAvailabilityValidation, handleValidationErrors, checkAvailability);
 router.get('/my-bookings', getUserBookings);
 
-router.get(
-    '/station/:stationId',
-    authorize('StationOwner', 'admin'),
-    getStationBookings
-);
+router.get('/station/:stationId', authorize('StationOwner', 'admin'), getStationBookings);
 
 router.get('/:bookingId', getBookingById);
 router.post('/:bookingId/cancel', cancelBookingValidation, handleValidationErrors, cancelBooking);
 router.post('/:bookingId/check-in', checkIn);
 router.post('/:bookingId/complete', completeBooking);
+router.post('/:bookingId/confirm-advance', confirmAdvancePayment);
 
 module.exports = router;

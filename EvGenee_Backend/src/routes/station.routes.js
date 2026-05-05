@@ -13,13 +13,16 @@ const {
     suspendStationOwner,
     getStationByOwner,
 } = require('../controllers/station.controller');
+
 const { validateToken } = require('../middlewares/auth.middleware');
 const { authorize } = require('../middlewares/authorize.middleware');
+
 const {
     addStationValidation,
     nearbyStationValidation,
     addReviewValidation,
 } = require('../validations/station.validation');
+
 const { handleValidationErrors } = require('../middlewares/validate.middleware');
 
 const router = express.Router();
@@ -27,78 +30,30 @@ const router = express.Router();
 router.get('/nearby', nearbyStationValidation, handleValidationErrors, getNearbyStations);
 
 
-router.get(
-    '/admin/all-stations',
-    validateToken,
-    authorize('admin'),
-    getAllStations
-);
+router.get('/admin/all-stations',  validateToken,  authorize('admin'),   getAllStations);
 
 
-router.get(
-    '/admin/owner/:ownerId',
-    validateToken,
-    authorize('admin'),
-    getStationByOwner
-);
-
-// Update station status (admin only)
-router.put(
-    '/admin/:stationId/status',
-    validateToken,
-    authorize('admin'),
-    updateStationStatus
-);
-
-// Suspend station (admin only)
-router.put(
-    '/admin/:stationId/suspend',
-    validateToken,
-    authorize('admin'),
-    suspendStationOwner
-);
+router.get( '/admin/owner/:ownerId', validateToken, authorize('admin'), getStationByOwner);
 
 
-router.delete(
-    '/admin/:stationId',
-    validateToken,
-    authorize('admin'),
-    deleteStation
-);
+router.put( '/admin/:stationId/status', validateToken, authorize('admin'), updateStationStatus);
+
+router.put(  '/admin/:stationId/suspend', validateToken, authorize('admin'), suspendStationOwner);
 
 
-router.post(
-    '/add',
-    validateToken,
-    authorize('StationOwner', 'admin'),
-    addStationValidation,
-    handleValidationErrors,
-    addStation
-);
+router.delete(   '/admin/:stationId', validateToken, authorize('admin'), deleteStation );
 
-router.get(
-    '/owner/my-stations',
-    validateToken,
-    authorize('StationOwner', 'admin'),
-    getMyStations
-);
+
+router.post(  '/add',  validateToken,  authorize('StationOwner', 'admin'),  addStationValidation,  handleValidationErrors,  addStation);
+
+router.get('/owner/my-stations', validateToken, authorize('StationOwner', 'admin'), getMyStations);
 
 router.get('/:stationId', getStationById);
 
 router.post('/:stationId/review', validateToken, addReviewValidation, handleValidationErrors, addReview);
 
-router.put(
-    '/:stationId',
-    validateToken,
-    authorize('StationOwner', 'admin'),
-    updateStation
-);
+router.put('/:stationId', validateToken, authorize('StationOwner', 'admin'), updateStation);
 
-router.patch(
-    '/:stationId/toggle',
-    validateToken,
-    authorize('StationOwner', 'admin'),
-    toggleStationStatus
-);
+router.patch('/:stationId/toggle', validateToken, authorize('StationOwner', 'admin'), toggleStationStatus);
 
 module.exports = router;

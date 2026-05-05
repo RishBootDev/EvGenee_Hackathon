@@ -2,6 +2,7 @@ const { processVoiceChat } = require('../services/langgraph.service');
 const jwt = require('jsonwebtoken');
 const { JWT_KEY } = require('../config/config');
 
+
 const initializeSocket = (io) => {
     io.use((socket, next) => {
         const token = socket.handshake.auth?.token || socket.handshake.headers?.cookie?.split('token=')[1]?.split(';')[0];
@@ -10,18 +11,18 @@ const initializeSocket = (io) => {
                 const decoded = jwt.verify(token, JWT_KEY);
                 socket.user = decoded;
             } catch (err) {
-                console.error("[Socket.IO] Auth error:", err.message);
+                console.error("Socket.IO Auth error:", err.message);
             }
         }
         next();
     });
 
     io.on('connection', (socket) => {
-        console.log(`[Socket.IO] Client connected: ${socket.id}`);
+        console.log(`Client connected: ${socket.id}`);
 
         socket.on('station:subscribe', (stationId) => {
             socket.join(`station_${stationId}`);
-            console.log(`[Socket.IO] ${socket.id} subscribed to station_${stationId}`);
+            console.log(`Socket.IO ${socket.id} subscribed to station_${stationId}`);
             socket.emit('station:subscribed', {
                 stationId,
                 message: `Now receiving real-time updates for station ${stationId}`,
@@ -30,13 +31,13 @@ const initializeSocket = (io) => {
 
         socket.on('station:unsubscribe', (stationId) => {
             socket.leave(`station_${stationId}`);
-            console.log(`[Socket.IO] ${socket.id} unsubscribed from station_${stationId}`);
+            console.log(`Socket.IO ${socket.id} unsubscribed from station_${stationId}`);
         });
 
     
         socket.on('user:subscribe', (userId) => {
             socket.join(`user_${userId}`);
-            console.log(`[Socket.IO] ${socket.id} joined user room: user_${userId}`);
+            console.log(` Socket.IO ${socket.id} joined user room: user_${userId}`);
         });
 
     
@@ -67,7 +68,7 @@ const initializeSocket = (io) => {
                     threadId: threadId || socket.id 
                 });
             } catch (error) {
-                console.error("[Socket.IO] AI Chat error:", error);
+                console.error(" Socket.IO AI Chat error:", error);
                 socket.emit('ai:voice_response', { success: false, error: "Failed to process chat" });
             }
         });

@@ -1,4 +1,23 @@
   const Station = require('../models/station.model');
+const axios = require('axios');
+
+async function getRoadDistance(startCoords, endCoords) {
+  try {
+    const url = `http://router.project-osrm.org/route/v1/driving/${startCoords[0]},${startCoords[1]};${endCoords[0]},${endCoords[1]}?overview=false`;
+    const response = await axios.get(url);
+    if (response.data && response.data.routes && response.data.routes.length > 0) {
+      const route = response.data.routes[0];
+      return {
+        roadDistance: (route.distance / 1000).toFixed(2),
+        travelTime: (route.duration / 60).toFixed(1)
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error("OSRM error:", err.message);
+    return null;
+  }
+}
 
 const addStation = async (req, res, next) => {
   try {
@@ -18,7 +37,7 @@ const addStation = async (req, res, next) => {
 
 const getNearbyStations = async (req, res, next) => {
   try {
-    const { lat, lng, maxDistance = 500000000, connectorType } = req.query;
+    const { lat, lng, maxDistance = 50000000000, connectorType } = req.query;
 
     const pipeline = [
       {
@@ -58,10 +77,24 @@ const getNearbyStations = async (req, res, next) => {
 
     const stations = await Station.aggregate(pipeline);
 
+  
+    const enrichedStations = await Promise.all(stations.slice(0, 10).map(async (st) => {
+      const roadInfo = await getRoadDistance([parseFloat(lng), parseFloat(lat)], st.location.coordinates);
+      return {
+        ...st,
+        roadDistance: roadInfo ? roadInfo.roadDistance : null,
+        travelTime: roadInfo ? roadInfo.travelTime : null
+      };
+    }));
+
+  
+    const remainingStations = stations.slice(10);
+    const finalData = [...enrichedStations, ...remainingStations];
+
     res.json({
       success: true,
       count: stations.length,
-      data: stations,
+      data: finalData,
     });
   } catch (error) {
     next(error);
@@ -285,7 +318,7 @@ const deleteStation = async (req, res, next) => {
 const updateStationStatus = async (req, res, next) => {
   try {
     const { stationId } = req.params;
-    const { status } = req.body; // 'active' or 'inactive'
+    const { status } = req.body; 
 
     if (!['active', 'inactive'].includes(status)) {
       return res.status(400).json({
@@ -382,7 +415,9 @@ module.exports = {
   toggleStationStatus,
   addReview,
   getMyStations,
+
   // Admin APIs
+
   getAllStations,
   deleteStation,
   updateStationStatus,
