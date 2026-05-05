@@ -1,7 +1,7 @@
 const Booking = require('../models/booking.model');
 const Station = require('../models/station.model');
 const { NODEMAILER_USER, NODEMAILER_PASS, NODEMAILER_PORT, PLATFORM_FEE_PERCENTAGE } = require('../config/config');  
-
+const nodemailer = require("nodemailer");
 
 const timeToMinutes = (time) => {
   const [h, m] = time.split(':').map(Number);
@@ -147,7 +147,7 @@ const createBooking = async (req, res, next) => {
     const transporter=nodemailer.createTransport({
       secure:true,
       host:"smtp.gmail.com",
-      port:NODEMAILER_PORT,
+      port: Number(NODEMAILER_PORT),
       auth:{
         user:NODEMAILER_USER,
         pass:NODEMAILER_PASS
@@ -824,7 +824,7 @@ const confirmAdvancePayment = async (req, res, next) => {
     const transporter = nodemailer.createTransport({
       secure: true,
       host: "smtp.gmail.com",
-      port: NODEMAILER_PORT,
+      port: Number(NODEMAILER_PORT),
       auth: {
         user: NODEMAILER_USER,
         pass: NODEMAILER_PASS
@@ -835,63 +835,69 @@ const confirmAdvancePayment = async (req, res, next) => {
     const station = booking.station;
     const date = booking.date.toISOString().split('T')[0];
 
-    await transporter.sendMail({
-      to: userInfo.email,
-      subject: "EvGenee - Your Booking is Confirmed! \u26A1",
-      html: `
-      <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 12px; border: 1px solid #eaeaea; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-        <div style="text-align: center; margin-bottom: 25px;">
-          <h1 style="color: #10B981; margin: 0; font-size: 28px;">EvGenee</h1>
-          <p style="color: #6b7280; margin-top: 5px; font-size: 14px;">Your intelligent EV charging partner</p>
-        </div>
-        
-        <h2 style="color: #111827; font-size: 20px; margin-bottom: 20px;">Booking Confirmed! 🎉</h2>
-        <p style="color: #374151; font-size: 16px; line-height: 1.5;">Hi <strong>${userInfo.name}</strong>,</p>
-        <p style="color: #374151; font-size: 16px; line-height: 1.5;">Your EV charging slot has been successfully reserved. Here are the details of your upcoming session:</p>
-        
-        <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid #f3f4f6; margin: 25px 0;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 40%;"><strong>Station</strong></td>
-              <td style="padding: 8px 0; color: #111827; font-size: 15px; font-weight: 500;">${station.name}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;"><strong>Location</strong></td>
-              <td style="padding: 8px 0; color: #111827; font-size: 15px; font-weight: 500; border-top: 1px solid #f3f4f6;">${station.address.city}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;"><strong>Date</strong></td>
-              <td style="padding: 8px 0; color: #111827; font-size: 15px; font-weight: 500; border-top: 1px solid #f3f4f6;">${date}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;"><strong>Time Slot</strong></td>
-              <td style="padding: 8px 0; color: #111827; font-size: 15px; font-weight: 500; border-top: 1px solid #f3f4f6;">${booking.startTime} to ${booking.endTime}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;"><strong>Connector</strong></td>
-              <td style="padding: 8px 0; color: #111827; font-size: 15px; font-weight: 500; border-top: 1px solid #f3f4f6;">${booking.connectorType}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;"><strong>Est. Total</strong></td>
-              <td style="padding: 8px 0; color: #10B981; font-size: 16px; font-weight: bold; border-top: 1px solid #f3f4f6;">₹${booking.grandTotal}</td>
-            </tr>
-          </table>
-        </div>
-
-        <p style="color: #374151; font-size: 16px; text-align: center; margin-top: 30px;">Your secure check-in OTP:</p>
-        <div style="text-align: center; margin: 15px 0 30px 0;">
-          <div style="display: inline-block; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #059669; background-color: #ecfdf5; padding: 15px 30px; border-radius: 10px; border: 2px dashed #10B981;">
-            ${otp}
+    try {
+      await transporter.sendMail({
+        to: userInfo.email,
+        subject: "EvGenee - Your Booking is Confirmed! \u26A1",
+        html: `
+        <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 12px; border: 1px solid #eaeaea; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          <div style="text-align: center; margin-bottom: 25px;">
+            <h1 style="color: #10B981; margin: 0; font-size: 28px;">EvGenee</h1>
+            <p style="color: #6b7280; margin-top: 5px; font-size: 14px;">Your intelligent EV charging partner</p>
           </div>
-          <p style="color: #9ca3af; font-size: 12px; margin-top: 8px;">Please show this OTP at the station to begin charging.</p>
-        </div>
-        
-        <hr style="border: none; border-top: 1px solid #eaeaea; margin: 30px 0;" />
-        <p style="color: #9ca3af; font-size: 13px; text-align: center; margin: 0;">
-          Thank you for choosing EvGenee!<br/>Drive safe, stay charged. ⚡
-        </p>
-      </div>`
-    });
+          
+          <h2 style="color: #111827; font-size: 20px; margin-bottom: 20px;">Booking Confirmed! 🎉</h2>
+          <p style="color: #374151; font-size: 16px; line-height: 1.5;">Hi <strong>${userInfo.name}</strong>,</p>
+          <p style="color: #374151; font-size: 16px; line-height: 1.5;">Your EV charging slot has been successfully reserved. Here are the details of your upcoming session:</p>
+          
+          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid #f3f4f6; margin: 25px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 40%;"><strong>Station</strong></td>
+                <td style="padding: 8px 0; color: #111827; font-size: 15px; font-weight: 500;">${station.name}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;"><strong>Location</strong></td>
+                <td style="padding: 8px 0; color: #111827; font-size: 15px; font-weight: 500; border-top: 1px solid #f3f4f6;">${station.address.city}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;"><strong>Date</strong></td>
+                <td style="padding: 8px 0; color: #111827; font-size: 15px; font-weight: 500; border-top: 1px solid #f3f4f6;">${date}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;"><strong>Time Slot</strong></td>
+                <td style="padding: 8px 0; color: #111827; font-size: 15px; font-weight: 500; border-top: 1px solid #f3f4f6;">${booking.startTime} to ${booking.endTime}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;"><strong>Connector</strong></td>
+                <td style="padding: 8px 0; color: #111827; font-size: 15px; font-weight: 500; border-top: 1px solid #f3f4f6;">${booking.connectorType}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;"><strong>Est. Total</strong></td>
+                <td style="padding: 8px 0; color: #10B981; font-size: 16px; font-weight: bold; border-top: 1px solid #f3f4f6;">₹${booking.grandTotal}</td>
+              </tr>
+            </table>
+          </div>
+  
+          <p style="color: #374151; font-size: 16px; text-align: center; margin-top: 30px;">Your secure check-in OTP:</p>
+          <div style="text-align: center; margin: 15px 0 30px 0;">
+            <div style="display: inline-block; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #059669; background-color: #ecfdf5; padding: 15px 30px; border-radius: 10px; border: 2px dashed #10B981;">
+              ${otp}
+            </div>
+            <p style="color: #9ca3af; font-size: 12px; margin-top: 8px;">Please show this OTP at the station to begin charging.</p>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #eaeaea; margin: 30px 0;" />
+          <p style="color: #9ca3af; font-size: 13px; text-align: center; margin: 0;">
+            Thank you for choosing EvGenee!<br/>Drive safe, stay charged. ⚡
+          </p>
+        </div>`
+      });
+      console.log(`Confirmation email sent to ${userInfo.email} for booking ${booking._id}`);
+    } catch (emailError) {
+      console.error(`Failed to send confirmation email to ${userInfo.email}:`, emailError);
+      // We continue since the booking is already saved as confirmed
+    }
 
     const io = req.app.get('io');
     if (io) {
@@ -910,7 +916,14 @@ const confirmAdvancePayment = async (req, res, next) => {
       });
     }
 
-    res.status(200).json({ success: true, message: 'Booking confirmed', data: booking });
+    res.status(200).json({ 
+      success: true, 
+      message: 'Booking confirmed', 
+      data: {
+        ...booking.toObject(),
+        otp: otp
+      }
+    });
   } catch (error) {
     next(error);
   }

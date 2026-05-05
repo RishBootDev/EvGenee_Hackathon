@@ -55,11 +55,11 @@ const isOverlapping = (startA, endA, startB, endB) => {
   return sA < eB && sB < eA;
 };
 
-const findBestStationTool = tool(z
+const findBestStationTool = tool(
   async ({ location, date, startTime, endTime, chargerType }) => {
     try {
       const coords = await geocodeLocation(location);
-      if (!coords) return `I couldn't locate "${location}" on the map. Could you specify a more precise city or area?`;
+      if (!coords) return JSON.stringify({ error: `I couldn't locate "${location}" on the map. Could you specify a more precise city or area?` });
 
       const stations = await Station.find({
         location: {
@@ -197,7 +197,7 @@ const createBookingTool = (userInfo) => tool(
   async ({ stationId, date, startTime, endTime, chargerType }) => {
     try {
       const station = await Station.findById(stationId);
-      if (!station) return "Station not found.";
+      if (!station) return JSON.stringify({ error: "Station not found." });
 
       let bookingDate = new Date(date);
       if (isNaN(bookingDate.valueOf())) {
@@ -224,7 +224,7 @@ const createBookingTool = (userInfo) => tool(
       }
       
       if (overlapping >= station.availablePorts) {
-        return "Conflict detected: This slot is no longer available. Please try another time.";
+        return JSON.stringify({ error: "Conflict detected: This slot is no longer available. Please try another time." });
       }
 
       const pricing = station.pricing.find((p) => p.connectorType === chargerType);
@@ -301,7 +301,7 @@ CRITICAL INSTRUCTIONS:
 
 function createVoiceAgent(userInfo) {
   const llm = new ChatGroq({
-    model: "llama-3.3-70b-versatile",
+    model: "openai/gpt-oss-20b",
     temperature: 0.1,
     apiKey: GROQ_API_KEY,
   });
@@ -357,13 +357,15 @@ async function processVoiceChat(message, threadId, userInfo) {
     let bookingId = null;
     const toolMessages = response.messages.filter(m => m._getType() === "tool");
     for (const tm of toolMessages) {
-      try {
-        const content = JSON.parse(tm.content);
-        if (content.success && content.bookingId) {
-          bookingId = content.bookingId;
+      if (tm.content && (tm.content.startsWith('{') || tm.content.startsWith('['))) {
+        try {
+          const content = JSON.parse(tm.content);
+          if (content.success && content.bookingId) {
+            bookingId = content.bookingId;
+          }
+        } catch (e) {
+          // Ignore parse errors for non-json tool outputs
         }
-      } catch (e) {
-        console.log(e);
       }
     }
 
@@ -378,12 +380,14 @@ async function processVoiceChat(message, threadId, userInfo) {
    
     let stations = null;
     for (const tm of toolMessages) {
-      try {
-        const content = JSON.parse(tm.content);
-        if (content.stations) {
-          stations = content.stations;
-        }
-      } catch (e) {}
+      if (tm.content && (tm.content.startsWith('{') || tm.content.startsWith('['))) {
+        try {
+          const content = JSON.parse(tm.content);
+          if (content.stations) {
+            stations = content.stations;
+          }
+        } catch (e) {}
+      }
     }
 
     if (stations) {
