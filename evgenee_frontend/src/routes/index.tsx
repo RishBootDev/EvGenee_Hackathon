@@ -180,6 +180,46 @@ function HomePage() {
     );
   }, [stations, search]);
 
+  const [roadDistances, setRoadDistances] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const top = filtered.slice(0, 8);
+    if (!userLocation || top.length === 0) return;
+
+    // Only fetch if we have new stations that aren't in the cache
+    const missing = top.filter(s => !roadDistances[s._id]);
+    if (missing.length === 0) return;
+
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const coords = [
+          `${userLocation[1]},${userLocation[0]}`,
+          ...top.map(s => `${s.location.coordinates[0]},${s.location.coordinates[1]}`)
+        ].join(";");
+        
+        const url = `https://router.project-osrm.org/table/v1/driving/${coords}?sources=0&annotations=distance`;
+        const res = await fetch(url, { signal: controller.signal });
+        const data = await res.json();
+        
+        if (data.distances?.[0]) {
+          const newDists: Record<string, number> = { ...roadDistances };
+          data.distances[0].forEach((d: number, i: number) => {
+            if (i === 0) return; // skip self-distance
+            const station = top[i - 1];
+            if (station && d !== null) {
+              newDists[station._id] = d / 1000;
+            }
+          });
+          setRoadDistances(newDists);
+        }
+      } catch (e) {
+        if (e instanceof Error && e.name !== "AbortError") console.error("Road distance fetch failed", e);
+      }
+    })();
+    return () => controller.abort();
+  }, [filtered, userLocation, roadDistances]);
+
   // ── Close dropdown on outside click ────────────────────────────────────────
   // FIX: Use mousedown instead of pointerdown so it doesn't fire on map drags
   useEffect(() => {
@@ -422,9 +462,13 @@ function HomePage() {
                       </p>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
-                      {s.distanceKm !== undefined && (
+                      {(roadDistances[s._id] !== undefined || s.distanceKm !== undefined) && (
                         <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", background: "rgba(34,197,94,0.1)", padding: "1px 6px", borderRadius: 6 }}>
-                          {s.distanceKm < 1 ? `${(s.distanceKm * 1000).toFixed(0)}m` : `${s.distanceKm.toFixed(1)}km`}
+                          {(() => {
+                            const d = roadDistances[s._id] ?? s.distanceKm;
+                            return d < 1 ? `${(d * 1000).toFixed(0)}m` : `${d.toFixed(1)}km`;
+                          })()}
+                          {roadDistances[s._id] !== undefined && <span style={{ fontSize: 8, opacity: 0.6, marginLeft: 2, verticalAlign: "middle" }}>ROAD</span>}
                         </span>
                       )}
                       <span style={{ fontSize: 11, fontWeight: 600, color: avail ? "#22c55e" : "rgba(255,255,255,0.3)" }}>

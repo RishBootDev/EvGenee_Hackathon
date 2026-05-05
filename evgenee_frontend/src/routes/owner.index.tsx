@@ -26,6 +26,8 @@ function OwnerPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [otpFor, setOtpFor] = useState<Booking | null>(null);
+  const [otp, setOtp] = useState("");
 
   // Edit station states
   const [editingStation, setEditingStation] = useState<Station | null>(null);
@@ -110,6 +112,22 @@ function OwnerPage() {
       load();
     } catch (e) {
       toast.error(getApiError(e, "Completion failed"));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleCheckIn = async () => {
+    if (!otpFor) return;
+    setBusyId(otpFor._id);
+    try {
+      await BookingsAPI.checkIn(otpFor._id, { otp });
+      toast.success("Checked in! Session started.");
+      setOtpFor(null);
+      setOtp("");
+      load();
+    } catch (e) {
+      toast.error(getApiError(e, "Invalid OTP"));
     } finally {
       setBusyId(null);
     }
@@ -273,10 +291,14 @@ function OwnerPage() {
               <div className="h-12 w-12 rounded-xl bg-[image:var(--gradient-primary)] grid place-items-center shrink-0">
                 <Zap className="h-6 w-6 text-white" fill="white" />
               </div>
-              <div className="flex-1 min-w-0">
+              <Link 
+                to="/owner/stations/$stationId" 
+                params={{ stationId: s._id }}
+                className="flex-1 min-w-0 hover:opacity-80 transition-opacity"
+              >
                 <p className="font-bold truncate">{s.name}</p>
                 <p className="text-xs text-muted-foreground truncate">{s.address.city} · {s.availablePorts}/{s.totalPorts} ports · {s.openingHours}</p>
-              </div>
+              </Link>
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" onClick={() => startEdit(s)} className="text-muted-foreground hover:text-primary">
                   <Edit2 className="h-4 w-4" />
@@ -382,40 +404,32 @@ function OwnerPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Recent station bookings */}
-      {bookings.length > 0 && (
-        <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)]">
-          <h2 className="font-bold mb-2">Recent Bookings</h2>
-          <div className="space-y-2 max-h-72 overflow-y-auto">
-            {bookings.slice(0, 10).map((b) => {
-              const u = typeof b.user === "object" ? b.user.name : "User";
-              return (
-                <div key={b._id} className="flex items-center justify-between text-sm border-b border-border last:border-0 pb-2 last:pb-0">
-                  <div>
-                    <p className="font-medium">{u}</p>
-                    <p className="text-xs text-muted-foreground">{format(new Date(b.date), "MMM d")} · {b.startTime}-{b.endTime} · {b.connectorType}</p>
-                  </div>
-                  <div className="text-right flex flex-col items-end gap-1">
-                    <p className="font-bold">{formatCurrency(b.grandTotal)}</p>
-                    <p className={cn("text-[10px] uppercase font-bold", b.status === "in-progress" ? "text-primary" : "text-muted-foreground")}>{b.status}</p>
-                    {b.status === "in-progress" && (
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="h-7 text-[10px] px-2 rounded-lg border-primary text-primary hover:bg-primary hover:text-white"
-                        onClick={() => handleComplete(b._id)}
-                        disabled={busyId === b._id}
-                      >
-                        {busyId === b._id ? <Loader2 className="h-3 w-3 animate-spin" /> : "COMPLETE"}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* OTP Dialog for Check-in */}
+      <Dialog open={!!otpFor} onOpenChange={(o) => !o && setOtpFor(null)}>
+        <DialogContent className="bg-[#0a1628] border border-white/10 text-white rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Verify Check-in OTP</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-white/40">Enter the 6-digit OTP provided by the user to start the session.</p>
+          <Input
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            maxLength={6}
+            placeholder="000000"
+            className="text-center text-2xl tracking-[0.5em] font-mono h-14 bg-white/5 border-white/10 text-white placeholder:text-white/20"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOtpFor(null)} className="border-white/10 text-white/60 hover:bg-white/5">Cancel</Button>
+            <Button
+              onClick={handleCheckIn}
+              disabled={otp.length !== 6 || busyId === otpFor?._id}
+              className="bg-gradient-to-r from-green-600 to-green-400 text-white font-bold"
+            >
+              {busyId === otpFor?._id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify & Start"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
