@@ -18,6 +18,7 @@ import { Route as StationsStationIdRouteImport } from './routes/stations.$statio
 import { Route as OwnerNewRouteImport } from './routes/owner.new'
 import { Route as AuthRegisterRouteImport } from './routes/auth.register'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as OwnerStationsStationIdRouteImport } from './routes/owner.stations.$stationId'
 
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
@@ -64,6 +65,11 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OwnerStationsStationIdRoute = OwnerStationsStationIdRouteImport.update({
+  id: '/stations/$stationId',
+  path: '/stations/$stationId',
+  getParentRoute: () => OwnerRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/owner/new': typeof OwnerNewRoute
   '/stations/$stationId': typeof StationsStationIdRoute
   '/owner/': typeof OwnerIndexRoute
+  '/owner/stations/$stationId': typeof OwnerStationsStationIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/owner/new': typeof OwnerNewRoute
   '/stations/$stationId': typeof StationsStationIdRoute
   '/owner': typeof OwnerIndexRoute
+  '/owner/stations/$stationId': typeof OwnerStationsStationIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/owner/new': typeof OwnerNewRoute
   '/stations/$stationId': typeof StationsStationIdRoute
   '/owner/': typeof OwnerIndexRoute
+  '/owner/stations/$stationId': typeof OwnerStationsStationIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/owner/new'
     | '/stations/$stationId'
     | '/owner/'
+    | '/owner/stations/$stationId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/owner/new'
     | '/stations/$stationId'
     | '/owner'
+    | '/owner/stations/$stationId'
   id:
     | '__root__'
     | '/'
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/owner/new'
     | '/stations/$stationId'
     | '/owner/'
+    | '/owner/stations/$stationId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -208,17 +220,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/owner/stations/$stationId': {
+      id: '/owner/stations/$stationId'
+      path: '/stations/$stationId'
+      fullPath: '/owner/stations/$stationId'
+      preLoaderRoute: typeof OwnerStationsStationIdRouteImport
+      parentRoute: typeof OwnerRoute
+    }
   }
 }
 
 interface OwnerRouteChildren {
   OwnerNewRoute: typeof OwnerNewRoute
   OwnerIndexRoute: typeof OwnerIndexRoute
+  OwnerStationsStationIdRoute: typeof OwnerStationsStationIdRoute
 }
 
 const OwnerRouteChildren: OwnerRouteChildren = {
   OwnerNewRoute: OwnerNewRoute,
   OwnerIndexRoute: OwnerIndexRoute,
+  OwnerStationsStationIdRoute: OwnerStationsStationIdRoute,
 }
 
 const OwnerRouteWithChildren = OwnerRoute._addFileChildren(OwnerRouteChildren)
