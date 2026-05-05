@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Loader2, MapPin, Phone, Star, Zap, Navigation, Send } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Phone, Star, Zap, Navigation, Send, LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
-import { formatCurrency, getApiError } from "@/lib/utils";
+import { cn, formatCurrency, getApiError } from "@/lib/utils";
 import { format } from "date-fns";
 import { useAuth } from "@/lib/auth";
 
@@ -21,6 +21,7 @@ type Slot = { startTime: string; endTime: string; isAvailable: boolean; availabl
 
 function StationDetail() {
   const { stationId } = Route.useParams();
+  const { user } = useAuth();
   const nav = useNavigate();
   const [station, setStation] = useState<Station | null>(null);
   const [loading, setLoading] = useState(true);
@@ -249,6 +250,8 @@ function StationDetail() {
   const minPrice = station.pricing?.length ? Math.min(...station.pricing.map((p) => p.priceperKWh)) : 0;
   const [lng, lat] = station.location.coordinates;
 
+  const isMyStation = station && user && (typeof station.ownerofStation === "string" ? station.ownerofStation === user.id : station.ownerofStation._id === user.id);
+
   return (
     <div className="max-w-2xl mx-auto pb-8">
       {/* Hero */}
@@ -292,7 +295,17 @@ function StationDetail() {
         </div>
 
         {/* Booking section */}
-        <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)] space-y-4">
+        {isMyStation ? (
+          <div className="bg-card rounded-2xl p-6 text-center shadow-[var(--shadow-card)] space-y-3">
+            <LayoutDashboard className="h-10 w-10 mx-auto text-primary" />
+            <h2 className="font-bold text-lg">Your Station</h2>
+            <p className="text-sm text-muted-foreground pb-2">As the owner, you can manage bookings and settings from your dashboard.</p>
+            <Button onClick={() => nav({ to: "/owner" })} className="w-full bg-[image:var(--gradient-primary)] text-primary-foreground">
+              OPEN DASHBOARD
+            </Button>
+          </div>
+        ) : (
+          <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)] space-y-4">
           <h2 className="font-bold text-lg">Book a Slot</h2>
 
           <div className="grid grid-cols-2 gap-3">
@@ -346,7 +359,10 @@ function StationDetail() {
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank")}>
+            <Button variant="outline" onClick={() => {
+              sessionStorage.setItem("pendingDirections", stationId);
+              nav({ to: "/" });
+            }}>
               <Navigation className="h-4 w-4 mr-1" /> Navigate
             </Button>
             <Button
@@ -358,6 +374,7 @@ function StationDetail() {
             </Button>
           </div>
         </div>
+        )}
 
         {/* Reviews */}
         <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)] space-y-4">
