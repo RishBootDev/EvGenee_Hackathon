@@ -55,7 +55,7 @@ const isOverlapping = (startA, endA, startB, endB) => {
   return sA < eB && sB < eA;
 };
 
-const findBestStationTool = tool(z
+const findBestStationTool = tool(
   async ({ location, date, startTime, endTime, chargerType }) => {
     try {
       const coords = await geocodeLocation(location);
