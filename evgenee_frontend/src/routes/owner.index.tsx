@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, MapPin, Plus, Power, Zap, TrendingUp, Calendar, IndianRupee, Edit2, X } from "lucide-react";
 import { toast } from "sonner";
-import { formatCurrency, getApiError } from "@/lib/utils";
+import { cn, formatCurrency, getApiError } from "@/lib/utils";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend } from "recharts";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LocationPicker } from "@/components/LocationPicker";
 
 export const Route = createFileRoute("/owner/")({
   component: OwnerPage,
@@ -29,35 +30,67 @@ function OwnerPage() {
   // Edit station states
   const [editingStation, setEditingStation] = useState<Station | null>(null);
   const [editForm, setEditForm] = useState({
-    name: "",
-    operator: "",
-    chargingSpeed: "",
-    totalPorts: "",
-    availablePorts: "",
+    name: "", operator: "",
+    street: "", city: "", state: "", country: "India", postalCode: "",
+    lat: "", lng: "",
+    totalPorts: "", availablePorts: "", chargingSpeed: "",
+    openingHours: "", phone: "", email: "",
+    amenities: "", image: "", platformFee: "",
   });
+  const [editConnectors, setEditConnectors] = useState<{ type: string; price: string }[]>([]);
   const [updating, setUpdating] = useState(false);
 
   const startEdit = (s: Station) => {
     setEditingStation(s);
     setEditForm({
-      name: s.name,
-      operator: s.operator,
-      chargingSpeed: s.chargingSpeed.toString(),
-      totalPorts: s.totalPorts.toString(),
-      availablePorts: s.availablePorts.toString(),
+      name: s.name || "",
+      operator: s.operator || "",
+      street: s.address?.street || "", city: s.address?.city || "",
+      state: s.address?.state || "", country: s.address?.country || "India",
+      postalCode: s.address?.postalCode || "",
+      lat: s.location?.coordinates?.[1]?.toString() || "",
+      lng: s.location?.coordinates?.[0]?.toString() || "",
+      totalPorts: s.totalPorts?.toString() || "",
+      availablePorts: s.availablePorts?.toString() || "",
+      chargingSpeed: s.chargingSpeed?.toString() || "",
+      openingHours: s.openingHours || "",
+      phone: s.contactInfo?.phoneNumber || "",
+      email: s.contactInfo?.email || "",
+      amenities: (s.amenities || []).join(", "),
+      image: (s.Images || []).join(", "),
+      platformFee: (s.platformFee || 5).toString(),
     });
+    setEditConnectors(
+      (s.pricing || []).map(p => ({
+        type: p.connectorType,
+        price: p.priceperKWh.toString()
+      }))
+    );
   };
 
   const handleUpdate = async () => {
     if (!editingStation) return;
     setUpdating(true);
     try {
+      const types = editConnectors.map((c) => c.type);
       await StationsAPI.update(editingStation._id, {
         name: editForm.name,
         operator: editForm.operator,
-        chargingSpeed: Number(editForm.chargingSpeed),
+        location: { type: "Point", coordinates: [parseFloat(editForm.lng) || 0, parseFloat(editForm.lat) || 0] },
+        address: {
+          street: editForm.street, city: editForm.city, state: editForm.state,
+          country: editForm.country, postalCode: editForm.postalCode,
+        },
+        amenities: editForm.amenities.split(",").map((s) => s.trim()).filter(Boolean),
         totalPorts: Number(editForm.totalPorts),
         availablePorts: Number(editForm.availablePorts),
+        chargingSpeed: Number(editForm.chargingSpeed),
+        typeOfConnectors: types,
+        pricing: editConnectors.map((c) => ({ connectorType: c.type, priceperKWh: Number(c.price), currency: "INR" })),
+        openingHours: editForm.openingHours,
+        contactInfo: { phoneNumber: editForm.phone, email: editForm.email },
+        Images: editForm.image.split(",").map((s) => s.trim()).filter(Boolean),
+        platformFee: Number(editForm.platformFee),
       });
       toast.success("Station updated!");
       setEditingStation(null);
@@ -66,6 +99,19 @@ function OwnerPage() {
       toast.error(getApiError(e, "Update failed"));
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleComplete = async (bookingId: string) => {
+    setBusyId(bookingId);
+    try {
+      await BookingsAPI.complete(bookingId);
+      toast.success("Session completed!");
+      load();
+    } catch (e) {
+      toast.error(getApiError(e, "Completion failed"));
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -160,8 +206,8 @@ function OwnerPage() {
     <div className="max-w-3xl mx-auto p-4 space-y-4" style={{ paddingTop: "calc(var(--safe-top) + 1.5rem)" }}>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Owner Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Manage stations & bookings</p>
+          <h1 className="text-2xl font-black text-white">Owner Dashboard</h1>
+          <p className="text-sm text-white/70 font-medium">Manage stations & bookings</p>
         </div>
         <Button onClick={() => nav({ to: "/owner/new" })} className="bg-[image:var(--gradient-primary)] text-primary-foreground shadow-[var(--shadow-glow)]">
           <Plus className="h-4 w-4 mr-1" />Add Station
@@ -179,7 +225,7 @@ function OwnerPage() {
       {/* Charts */}
       <div className="grid md:grid-cols-2 gap-3">
         <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)]">
-          <h3 className="font-bold mb-2 text-sm flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-primary" />Bookings (last 7 days)</h3>
+          <h3 className="font-bold mb-2 text-sm text-white/90 flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-primary" />Bookings (last 7 days)</h3>
           <div className="h-44">
             <ResponsiveContainer>
               <BarChart data={stats.trend}>
@@ -192,7 +238,7 @@ function OwnerPage() {
           </div>
         </div>
         <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)]">
-          <h3 className="font-bold mb-2 text-sm">Booking status</h3>
+          <h3 className="font-bold mb-2 text-sm text-white/90">Booking status</h3>
           <div className="h-44">
             {stats.statusData.length === 0 ? (
               <div className="grid place-items-center h-full text-xs text-muted-foreground">No data</div>
@@ -212,7 +258,7 @@ function OwnerPage() {
 
       {/* Stations list */}
       <div className="space-y-3">
-        <h2 className="font-bold">Your Stations</h2>
+        <h2 className="font-bold text-white/90">Your Stations</h2>
         {loading ? (
           <div className="py-12 grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : stations.length === 0 ? (
@@ -245,35 +291,89 @@ function OwnerPage() {
 
       {/* Edit Station Modal */}
       <Dialog open={!!editingStation} onOpenChange={(o) => !o && setEditingStation(null)}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-[500px] max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
             <DialogTitle>Edit Station</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-1.5">
-              <Label>Station Name</Label>
-              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+          <div className="space-y-6 py-4">
+            
+            {/* Basic Info */}
+            <div className="space-y-3">
+              <h3 className="font-bold text-sm text-primary">Basic Info</h3>
+              <div className="space-y-1.5"><Label>Name</Label><Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Operator</Label><Input value={editForm.operator} onChange={(e) => setEditForm({ ...editForm, operator: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Image URLs</Label><Input value={editForm.image} onChange={(e) => setEditForm({ ...editForm, image: e.target.value })} /></div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Operator</Label>
-              <Input value={editForm.operator} onChange={(e) => setEditForm({ ...editForm, operator: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Speed (kW)</Label>
-                <Input type="number" value={editForm.chargingSpeed} onChange={(e) => setEditForm({ ...editForm, chargingSpeed: e.target.value })} />
+
+            {/* Location & Map */}
+            <div className="space-y-3">
+              <h3 className="font-bold text-sm text-primary">Location</h3>
+              <div className="space-y-1.5"><Label>Street</Label><Input value={editForm.street} onChange={(e) => setEditForm({ ...editForm, street: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5"><Label>City</Label><Input value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label>State</Label><Input value={editForm.state} onChange={(e) => setEditForm({ ...editForm, state: e.target.value })} /></div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Total Ports</Label>
-                <Input type="number" value={editForm.totalPorts} onChange={(e) => setEditForm({ ...editForm, totalPorts: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5"><Label>Postal Code</Label><Input value={editForm.postalCode} onChange={(e) => setEditForm({ ...editForm, postalCode: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label>Country</Label><Input value={editForm.country} onChange={(e) => setEditForm({ ...editForm, country: e.target.value })} /></div>
+              </div>
+              <div className="pt-2">
+                <Label className="block mb-2">Pin on Map</Label>
+                <LocationPicker 
+                  lat={parseFloat(editForm.lat) || 0} 
+                  lng={parseFloat(editForm.lng) || 0} 
+                  onChange={(lat, lng) => setEditForm(f => ({ ...f, lat: lat.toString(), lng: lng.toString() }))} 
+                />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Available Ports</Label>
-              <Input type="number" value={editForm.availablePorts} onChange={(e) => setEditForm({ ...editForm, availablePorts: e.target.value })} />
+
+            {/* Capacity & Pricing */}
+            <div className="space-y-3">
+              <h3 className="font-bold text-sm text-primary">Capacity & Pricing</h3>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1.5"><Label>Speed (kW)</Label><Input type="number" value={editForm.chargingSpeed} onChange={(e) => setEditForm({ ...editForm, chargingSpeed: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label>Total Ports</Label><Input type="number" value={editForm.totalPorts} onChange={(e) => setEditForm({ ...editForm, totalPorts: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label>Available</Label><Input type="number" value={editForm.availablePorts} onChange={(e) => setEditForm({ ...editForm, availablePorts: e.target.value })} /></div>
+              </div>
+              <div className="space-y-1.5"><Label>Platform Fee (%)</Label><Input type="number" value={editForm.platformFee} onChange={(e) => setEditForm({ ...editForm, platformFee: e.target.value })} /></div>
+              
+              <div>
+                <Label className="block mb-2">Connectors</Label>
+                {editConnectors.map((c, i) => (
+                  <div key={i} className="flex gap-2 mb-2">
+                    <select
+                      className="flex-1 border border-input rounded-md px-3 h-10 bg-background"
+                      value={c.type}
+                      onChange={(e) => setEditConnectors(editConnectors.map((x, idx) => idx === i ? { ...x, type: e.target.value } : x))}
+                    >
+                      {["CCS2", "CHAdeMO", "Type2", "Type1", "Tesla"].map((t) => <option key={t}>{t}</option>)}
+                    </select>
+                    <Input className="flex-1" type="number" placeholder="Price/kWh" value={c.price}
+                      onChange={(e) => setEditConnectors(editConnectors.map((x, idx) => idx === i ? { ...x, price: e.target.value } : x))} />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setEditConnectors(editConnectors.filter((_, idx) => idx !== i))}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => setEditConnectors([...editConnectors, { type: "Type2", price: "10" }])}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />Add connector
+                </Button>
+              </div>
             </div>
+
+            {/* Contact & Misc */}
+            <div className="space-y-3">
+              <h3 className="font-bold text-sm text-primary">Contact & Misc</h3>
+              <div className="space-y-1.5"><Label>Opening Hours</Label><Input value={editForm.openingHours} onChange={(e) => setEditForm({ ...editForm, openingHours: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5"><Label>Phone</Label><Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} /></div>
+              </div>
+              <div className="space-y-1.5"><Label>Amenities</Label><Input value={editForm.amenities} onChange={(e) => setEditForm({ ...editForm, amenities: e.target.value })} /></div>
+            </div>
+
           </div>
-          <DialogFooter className="flex gap-2">
+          <DialogFooter className="flex gap-2 sticky bottom-0 bg-background/95 backdrop-blur py-2 border-t border-border mt-4">
             <Button variant="outline" onClick={() => setEditingStation(null)} className="rounded-xl">Cancel</Button>
             <Button onClick={handleUpdate} disabled={updating} className="bg-[image:var(--gradient-primary)] text-primary-foreground rounded-xl shadow-[var(--shadow-glow)]">
               {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
@@ -295,9 +395,20 @@ function OwnerPage() {
                     <p className="font-medium">{u}</p>
                     <p className="text-xs text-muted-foreground">{format(new Date(b.date), "MMM d")} · {b.startTime}-{b.endTime} · {b.connectorType}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex flex-col items-end gap-1">
                     <p className="font-bold">{formatCurrency(b.grandTotal)}</p>
-                    <p className="text-[10px] uppercase text-muted-foreground">{b.status}</p>
+                    <p className={cn("text-[10px] uppercase font-bold", b.status === "in-progress" ? "text-primary" : "text-muted-foreground")}>{b.status}</p>
+                    {b.status === "in-progress" && (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-7 text-[10px] px-2 rounded-lg border-primary text-primary hover:bg-primary hover:text-white"
+                        onClick={() => handleComplete(b._id)}
+                        disabled={busyId === b._id}
+                      >
+                        {busyId === b._id ? <Loader2 className="h-3 w-3 animate-spin" /> : "COMPLETE"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
@@ -305,6 +416,15 @@ function OwnerPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      {children}
     </div>
   );
 }

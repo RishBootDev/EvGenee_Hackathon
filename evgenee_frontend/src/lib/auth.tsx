@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { AuthAPI, tokenStore, type AuthUser, type Vehicle } from "./api";
-import { socket } from "./socket";
+import { socket, reconnectSocket } from "./socket";
 
 type AuthCtx = {
   user: AuthUser | null;
@@ -46,14 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user) {
-      if (!socket.connected) {
-        socket.connect();
-      }
+      // Update token and reconnect with fresh auth so AI voice chat works
+      reconnectSocket();       // updates socket.auth and disconnects
+      socket.connect();        // reconnect with the new token
       socket.emit("user:subscribe", user.id);
     } else {
       socket.disconnect();
     }
-    
+
     return () => {
       socket.off("user:subscribe");
     };
@@ -62,7 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login: AuthCtx["login"] = async (email, password) => {
     const r = await AuthAPI.login({ email, password });
     const data = r.data;
-    if (data.token) tokenStore.set(data.token);
+    if (data.token) {
+      tokenStore.set(data.token);
+      reconnectSocket(); // socket must carry the new token before connecting
+    }
     const u = { ...data.data, id: data.data._id ?? data.data.id };
     setUser(u);
     return u;
@@ -71,7 +74,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register: AuthCtx["register"] = async (d) => {
     const r = await AuthAPI.register(d);
     const data = r.data;
-    if (data.token) tokenStore.set(data.token);
+    if (data.token) {
+      tokenStore.set(data.token);
+      reconnectSocket(); // socket must carry the new token before connecting
+    }
     const u = { ...data.data, id: data.data._id ?? data.data.id };
     setUser(u);
     return u;
