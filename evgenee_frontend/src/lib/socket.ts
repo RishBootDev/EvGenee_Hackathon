@@ -16,3 +16,10 @@ export const socket: Socket = io(socketUrl, {
     cb({ token: tokenStore.get() });
   }
 });
+
+export function reconnectSocket() {
+  if (socket.connected) {
+    socket.disconnect();
+  }
+}
+
