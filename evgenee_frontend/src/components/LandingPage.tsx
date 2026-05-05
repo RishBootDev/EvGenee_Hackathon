@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import {
   Zap,
   MapPin,
@@ -12,17 +13,147 @@ import {
   Instagram,
   Linkedin,
   Github,
+  X,
 } from "lucide-react";
 
-// Add to your global CSS / index.html:
-// @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap');
+// ── EvGenee AI Assistant Popup ─────────────────────────────────
+function AIAssistantPopup() {
+  const [visible, setVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (dismissed) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        bottom: "80px",
+        right: "80px",
+        zIndex: 100,
+        display: "flex",
+        flexDirection: "row", // card on left, arrow pointing right toward mic
+        alignItems: "flex-end",
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0px)" : "translateY(10px)",
+        transition: "all 0.35s ease",
+      }}
+    >
+      {/* Card */}
+      <div
+        style={{
+          background: "linear-gradient(145deg, #0b1a2a, #0e2236)",
+          border: "1px solid rgba(52, 211, 153, 0.25)",
+          borderRadius: "16px",
+          padding: "14px 16px",
+          width: "220px",
+          backdropFilter: "blur(8px)",
+          boxShadow:
+            "0 0 0 1px rgba(52,211,153,0.06), 0 8px 30px rgba(0,0,0,0.6), 0 0 20px rgba(52,211,153,0.08)",
+          position: "relative",
+        }}
+      >
+        {/* Dismiss */}
+        <button
+          onClick={() => setDismissed(true)}
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            color: "rgba(255,255,255,0.3)",
+          }}
+        >
+          <X size={13} />
+        </button>
+
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+          <div
+            style={{
+              background: "rgba(52, 211, 153, 0.12)",
+              border: "1px solid rgba(52, 211, 153, 0.25)",
+              borderRadius: "10px",
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Zap size={15} style={{ color: "#34d399" }} />
+          </div>
+
+          <span
+            style={{
+              fontWeight: 600,
+              fontSize: "13.5px",
+              color: "#e6f1ff",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            EvGenee AI
+          </span>
+          <span
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "10px",
+              color: "rgba(255,255,255,0.28)",
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+            }}
+          >
+            your assistant
+          </span>
+        </div>
+
+        {/* Message */}
+        <p
+          style={{
+            fontSize: "12.8px",
+            color: "rgba(210, 230, 255, 0.75)",
+            lineHeight: "1.6",
+            margin: 0,
+          }}
+        >
+          Hi! I'm EvGenee AI. Need help finding a charger, checking pricing, or anything else?
+        </p>
+      </div>
+
+      {/* Arrow pointing RIGHT toward the mic button */}
+      <svg
+        width="8"
+        height="14"
+        viewBox="0 0 8 14"
+        style={{ marginBottom: "16px", flexShrink: 0 }}
+      >
+        <path
+          d="M0 0 L8 7 L0 14"
+          fill="#0e2236"
+          stroke="rgba(52, 211, 153, 0.25)"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+// ── Landing Page ────────────────────────────────────────────────
 export function LandingPage() {
   return (
     <div
       className="min-h-screen bg-[#000814] text-white overflow-x-hidden"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
+      {/* AI Assistant Popup */}
+      <AIAssistantPopup />
+
       {/* Grain texture */}
       <div
         className="fixed inset-0 z-0 pointer-events-none opacity-[0.03]"
@@ -33,7 +164,7 @@ export function LandingPage() {
         }}
       />
 
-      {/* Two intentional glows only */}
+      {/* Glows */}
       <div
         className="fixed top-0 left-0 w-[700px] h-[500px] pointer-events-none z-0"
         style={{
@@ -79,7 +210,6 @@ export function LandingPage() {
       {/* ── Hero ───────────────────────────────────────────────── */}
       <main className="relative z-10">
         <section className="px-6 pt-16 pb-12 max-w-7xl mx-auto">
-          {/* Eyebrow */}
           <p
             className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-10"
             style={{ fontFamily: "'DM Mono', monospace" }}
@@ -87,7 +217,6 @@ export function LandingPage() {
             EV charging network · India
           </p>
 
-          {/* Headline + subtext */}
           <div className="grid lg:grid-cols-[1fr_300px] gap-8 items-end mb-14">
             <h1
               className="text-[clamp(3.5rem,10vw,7.5rem)] font-black leading-[0.88] tracking-tight text-white"
@@ -108,7 +237,6 @@ export function LandingPage() {
                 Anytime!!
               </span>
               <br />
-              
             </h1>
 
             <div className="pb-2">
@@ -125,7 +253,6 @@ export function LandingPage() {
             </div>
           </div>
 
-          {/* Hero image */}
           <div className="relative rounded-2xl overflow-hidden border border-white/8">
             <img
               src="/evStation.jpeg"
@@ -141,7 +268,6 @@ export function LandingPage() {
                 >
                   Live availability
                 </p>
-                
               </div>
               <div
                 className="flex items-center gap-2 text-white/40 text-xs"
@@ -187,12 +313,11 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ── Features — numbered rows ────────────────────────────── */}
+        {/* ── Features ───────────────────────────────────────────── */}
         <section className="py-24 px-6 max-w-7xl mx-auto">
-          
           <p
-          className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-3"
-          style={{ fontFamily: "'DM Mono', monospace" }}
+            className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-3"
+            style={{ fontFamily: "'DM Mono', monospace" }}
           >
             Why it works
           </p>
@@ -244,79 +369,81 @@ export function LandingPage() {
             ))}
           </div>
         </section>
+
         {/* ── How it works ───────────────────────────────────────── */}
         <section className="py-24 px-6 max-w-7xl mx-auto">
           <p
-          className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-3"
-          style={{ fontFamily: "'DM Mono', monospace" }}
+            className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-3"
+            style={{ fontFamily: "'DM Mono', monospace" }}
           >
-          How it works
+            How it works
           </p>
           <h2
-          className="text-4xl font-extrabold text-white mb-14"
-          style={{ fontFamily: "'Syne', sans-serif" }}
+            className="text-4xl font-extrabold text-white mb-14"
+            style={{ fontFamily: "'Syne', sans-serif" }}
           >
-          Three steps to a full battery.
+            Three steps to a full battery.
           </h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-white/5 rounded-2xl overflow-hidden border border-white/8">
-          {[
-            {
-             num: "01",
-             icon: <MapPin className="h-5 w-5 text-blue-400" />,
-             title: "Find a station",
-             desc: "Open the app, see every charger near you in real time — availability and  price upfront.",
-          },
-          {
-            num: "02",
-            icon: <Zap className="h-5 w-5 text-cyan-400" />,
-            title: "Book your slot",
-            desc: "Reserve in under 60 seconds. Arrive and plug straight in — no waiting, no queue.",
-          },
-          {
-            num: "03",
-            icon: <BatteryCharging className="h-5 w-5 text-green-400" />,
-            title: "Charge and go",
-            desc: "Pay automatically through the app when done. Per-kWh billing, receipt in your inbox.",
-          },
-        ].map(({ num, icon, title, desc }) => (
-        <div
-        key={num}
-        className="bg-white/[0.03] p-8 hover:bg-white/[0.06] transition-colors"
-      >
-        <p
-          className="text-6xl font-black mb-6 leading-none"
-          style={{
-            fontFamily: "'Syne', sans-serif",
-            background: "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
-        >
-          {num}
-        </p>
-        <div className="bg-white/5 rounded-xl p-3 border border-white/8 w-fit mb-5">
-          {icon}
-        </div>
-        <h3
-          className="text-lg font-bold text-white mb-3"
-          style={{ fontFamily: "'Syne', sans-serif" }}
-        >
-          {title}
-        </h3>
-        <p className="text-blue-100/45 text-sm leading-relaxed">{desc}</p>
-      </div>
-    ))}
-  </div>
+            {[
+              {
+                num: "01",
+                icon: <MapPin className="h-5 w-5 text-blue-400" />,
+                title: "Find a station",
+                desc: "Open the app, see every charger near you in real time — availability and price upfront.",
+              },
+              {
+                num: "02",
+                icon: <Zap className="h-5 w-5 text-cyan-400" />,
+                title: "Book your slot",
+                desc: "Reserve in under 60 seconds. Arrive and plug straight in — no waiting, no queue.",
+              },
+              {
+                num: "03",
+                icon: <BatteryCharging className="h-5 w-5 text-green-400" />,
+                title: "Charge and go",
+                desc: "Pay automatically through the app when done. Per-kWh billing, receipt in your inbox.",
+              },
+            ].map(({ num, icon, title, desc }) => (
+              <div
+                key={num}
+                className="bg-white/[0.03] p-8 hover:bg-white/[0.06] transition-colors"
+              >
+                <p
+                  className="text-6xl font-black mb-6 leading-none"
+                  style={{
+                    fontFamily: "'Syne', sans-serif",
+                    background:
+                      "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  {num}
+                </p>
+                <div className="bg-white/5 rounded-xl p-3 border border-white/8 w-fit mb-5">
+                  {icon}
+                </div>
+                <h3
+                  className="text-lg font-bold text-white mb-3"
+                  style={{ fontFamily: "'Syne', sans-serif" }}
+                >
+                  {title}
+                </h3>
+                <p className="text-blue-100/45 text-sm leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
 
-  <div className="mt-10">
-    <Link to="/auth/register">
-      <button className="bg-green-500 hover:bg-green-400 text-black text-sm font-bold px-8 py-3.5 rounded-full transition-colors">
-        Get started →
-      </button>
-    </Link>
-  </div>
+          <div className="mt-10">
+            <Link to="/auth/register">
+              <button className="bg-green-500 hover:bg-green-400 text-black text-sm font-bold px-8 py-3.5 rounded-full transition-colors">
+                Get started →
+              </button>
+            </Link>
+          </div>
         </section>
 
         {/* ── Map section ────────────────────────────────────────── */}
@@ -341,7 +468,6 @@ export function LandingPage() {
                 From metro highways to Tier-2 towns, we're expanding faster than
                 India's EV fleet. New stations come online every week.
               </p>
-              
             </div>
             <div className="relative rounded-2xl overflow-hidden border border-white/8">
               <img
