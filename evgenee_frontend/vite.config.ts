@@ -36,15 +36,15 @@ export default defineConfig({
             short_name: "Stations",
             description: "Find charging stations near you",
             url: "/",
-            icons: [{ src: "/icon-192.png", sizes: "192x192" }]
+            icons: [{ src: "/icon-192.png", sizes: "192x192" }],
           },
           {
             name: "My Bookings",
             short_name: "Bookings",
             description: "View your charging history",
             url: "/bookings",
-            icons: [{ src: "/icon-192.png", sizes: "192x192" }]
-          }
+            icons: [{ src: "/icon-192.png", sizes: "192x192" }],
+          },
         ],
         icons: [
           { src: "/icon-192.png", sizes: "192x192", type: "image/png" },

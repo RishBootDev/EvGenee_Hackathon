@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import {
-  Zap,
   MapPin,
   BatteryCharging,
   ChevronRight,
@@ -12,11 +11,12 @@ import {
   Instagram,
   Linkedin,
   Github,
+  Zap,
 } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faChargingStation } from "@fortawesome/free-solid-svg-icons";
 
-// Add to your global CSS / index.html:
-// @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap');
-
+// ── Landing Page ────────────────────────────────────────────────
 export function LandingPage() {
   return (
     <div
@@ -33,7 +33,7 @@ export function LandingPage() {
         }}
       />
 
-      {/* Two intentional glows only */}
+      {/* Glows */}
       <div
         className="fixed top-0 left-0 w-[700px] h-[500px] pointer-events-none z-0"
         style={{
@@ -53,11 +53,11 @@ export function LandingPage() {
       <nav className="relative z-50 flex items-center justify-between px-6 py-5 max-w-7xl mx-auto border-b border-white/5">
         <div className="flex items-center gap-2.5">
           <div className="bg-green-500/15 p-2 rounded-xl border border-green-500/25">
-            <Zap className="h-5 w-5 text-green-400" fill="currentColor" />
+            <FontAwesomeIcon icon={faChargingStation} className="h-5 w-5 text-green-400" />
           </div>
           <span
             className="text-xl font-bold tracking-tight text-white"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "'Poppins', sans-serif" }}
           >
             EvGenee
           </span>
@@ -79,7 +79,6 @@ export function LandingPage() {
       {/* ── Hero ───────────────────────────────────────────────── */}
       <main className="relative z-10">
         <section className="px-6 pt-16 pb-12 max-w-7xl mx-auto">
-          {/* Eyebrow */}
           <p
             className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-10"
             style={{ fontFamily: "'DM Mono', monospace" }}
@@ -87,13 +86,12 @@ export function LandingPage() {
             EV charging network · India
           </p>
 
-          {/* Headline + subtext */}
           <div className="grid lg:grid-cols-[1fr_300px] gap-8 items-end mb-14">
             <h1
               className="text-[clamp(3.5rem,10vw,7.5rem)] font-black leading-[0.88] tracking-tight text-white"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "'Poppins', sans-serif" }}
             >
-              Charge Your EV ,
+              Charge Smarter. Drive Better.
               <br />
               <span
                 style={{
@@ -104,11 +102,9 @@ export function LandingPage() {
                   backgroundClip: "text",
                 }}
               >
-                Anywhere,
-                Anytime!!
+                Powering the future of electric mobility.
               </span>
               <br />
-              
             </h1>
 
             <div className="pb-2">
@@ -125,7 +121,6 @@ export function LandingPage() {
             </div>
           </div>
 
-          {/* Hero image */}
           <div className="relative rounded-2xl overflow-hidden border border-white/8">
             <img
               src="/evStation.jpeg"
@@ -141,7 +136,6 @@ export function LandingPage() {
                 >
                   Live availability
                 </p>
-                
               </div>
               <div
                 className="flex items-center gap-2 text-white/40 text-xs"
@@ -167,7 +161,7 @@ export function LandingPage() {
                 <p
                   className="text-4xl font-extrabold mb-1"
                   style={{
-                    fontFamily: "'Syne', sans-serif",
+                    fontFamily: "'Poppins', sans-serif",
                     background: "linear-gradient(90deg, #60a5fa, #34d399)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
@@ -187,12 +181,11 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ── Features — numbered rows ────────────────────────────── */}
+        {/* ── Features ───────────────────────────────────────────── */}
         <section className="py-24 px-6 max-w-7xl mx-auto">
-          
           <p
-          className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-3"
-          style={{ fontFamily: "'DM Mono', monospace" }}
+            className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-3"
+            style={{ fontFamily: "'DM Mono', monospace" }}
           >
             Why it works
           </p>
@@ -234,7 +227,7 @@ export function LandingPage() {
                   </div>
                   <h3
                     className="text-xl font-bold text-white"
-                    style={{ fontFamily: "'Syne', sans-serif" }}
+                    style={{ fontFamily: "'Poppins', sans-serif" }}
                   >
                     {title}
                   </h3>
@@ -244,79 +237,81 @@ export function LandingPage() {
             ))}
           </div>
         </section>
+
         {/* ── How it works ───────────────────────────────────────── */}
         <section className="py-24 px-6 max-w-7xl mx-auto">
           <p
-          className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-3"
-          style={{ fontFamily: "'DM Mono', monospace" }}
+            className="text-green-400/60 text-xs font-medium tracking-[0.2em] uppercase mb-3"
+            style={{ fontFamily: "'DM Mono', monospace" }}
           >
-          How it works
+            How it works
           </p>
           <h2
-          className="text-4xl font-extrabold text-white mb-14"
-          style={{ fontFamily: "'Syne', sans-serif" }}
+            className="text-4xl font-extrabold text-white mb-14"
+            style={{ fontFamily: "'Poppins', sans-serif" }}
           >
-          Three steps to a full battery.
+            Three steps to a full battery.
           </h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-white/5 rounded-2xl overflow-hidden border border-white/8">
-          {[
-            {
-             num: "01",
-             icon: <MapPin className="h-5 w-5 text-blue-400" />,
-             title: "Find a station",
-             desc: "Open the app, see every charger near you in real time — availability and  price upfront.",
-          },
-          {
-            num: "02",
-            icon: <Zap className="h-5 w-5 text-cyan-400" />,
-            title: "Book your slot",
-            desc: "Reserve in under 60 seconds. Arrive and plug straight in — no waiting, no queue.",
-          },
-          {
-            num: "03",
-            icon: <BatteryCharging className="h-5 w-5 text-green-400" />,
-            title: "Charge and go",
-            desc: "Pay automatically through the app when done. Per-kWh billing, receipt in your inbox.",
-          },
-        ].map(({ num, icon, title, desc }) => (
-        <div
-        key={num}
-        className="bg-white/[0.03] p-8 hover:bg-white/[0.06] transition-colors"
-      >
-        <p
-          className="text-6xl font-black mb-6 leading-none"
-          style={{
-            fontFamily: "'Syne', sans-serif",
-            background: "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
-        >
-          {num}
-        </p>
-        <div className="bg-white/5 rounded-xl p-3 border border-white/8 w-fit mb-5">
-          {icon}
-        </div>
-        <h3
-          className="text-lg font-bold text-white mb-3"
-          style={{ fontFamily: "'Syne', sans-serif" }}
-        >
-          {title}
-        </h3>
-        <p className="text-blue-100/45 text-sm leading-relaxed">{desc}</p>
-      </div>
-    ))}
-  </div>
+            {[
+              {
+                num: "01",
+                icon: <MapPin className="h-5 w-5 text-blue-400" />,
+                title: "Find a station",
+                desc: "Open the app, see every charger near you in real time — availability and price upfront.",
+              },
+              {
+                num: "02",
+                icon: <Zap className="h-5 w-5 text-cyan-400" />,
+                title: "Book your slot",
+                desc: "Reserve in under 60 seconds. Arrive and plug straight in — no waiting, no queue.",
+              },
+              {
+                num: "03",
+                icon: <BatteryCharging className="h-5 w-5 text-green-400" />,
+                title: "Charge and go",
+                desc: "Pay automatically through the app when done. Per-kWh billing, receipt in your inbox.",
+              },
+            ].map(({ num, icon, title, desc }) => (
+              <div
+                key={num}
+                className="bg-white/[0.03] p-8 hover:bg-white/[0.06] transition-colors"
+              >
+                <p
+                  className="text-6xl font-black mb-6 leading-none"
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    background:
+                      "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  {num}
+                </p>
+                <div className="bg-white/5 rounded-xl p-3 border border-white/8 w-fit mb-5">
+                  {icon}
+                </div>
+                <h3
+                  className="text-lg font-bold text-white mb-3"
+                  style={{ fontFamily: "'Poppins', sans-serif" }}
+                >
+                  {title}
+                </h3>
+                <p className="text-blue-100/45 text-sm leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
 
-  <div className="mt-10">
-    <Link to="/auth/register">
-      <button className="bg-green-500 hover:bg-green-400 text-black text-sm font-bold px-8 py-3.5 rounded-full transition-colors">
-        Get started →
-      </button>
-    </Link>
-  </div>
+          <div className="mt-10">
+            <Link to="/auth/register">
+              <button className="bg-green-500 hover:bg-green-400 text-black text-sm font-bold px-8 py-3.5 rounded-full transition-colors">
+                Get started
+              </button>
+            </Link>
+          </div>
         </section>
 
         {/* ── Map section ────────────────────────────────────────── */}
@@ -331,7 +326,7 @@ export function LandingPage() {
               </p>
               <h2
                 className="text-4xl sm:text-5xl font-extrabold text-white mb-5 leading-tight"
-                style={{ fontFamily: "'Syne', sans-serif" }}
+                style={{ fontFamily: "'Poppins', sans-serif" }}
               >
                 Growing where
                 <br />
@@ -341,7 +336,6 @@ export function LandingPage() {
                 From metro highways to Tier-2 towns, we're expanding faster than
                 India's EV fleet. New stations come online every week.
               </p>
-              
             </div>
             <div className="relative rounded-2xl overflow-hidden border border-white/8">
               <img
@@ -381,9 +375,9 @@ export function LandingPage() {
                 </p>
                 <h2
                   className="text-4xl sm:text-5xl font-extrabold text-white leading-tight"
-                  style={{ fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontFamily: "'Poppins', sans-serif" }}
                 >
-                  Your next trip,
+                  Your next trip, fully charged.
                   <br />
                   <span
                     style={{
@@ -394,13 +388,11 @@ export function LandingPage() {
                       backgroundClip: "text",
                     }}
                   >
-                    fully charged.
                   </span>
                 </h2>
               </div>
               <Link to="/auth/register" className="shrink-0">
                 <button className="flex items-center gap-3 bg-green-500 hover:bg-green-400 text-black font-bold px-8 py-4 rounded-full transition-colors text-base">
-                  <BatteryCharging className="h-5 w-5" />
                   Create free account
                 </button>
               </Link>
@@ -416,11 +408,11 @@ export function LandingPage() {
             <div className="col-span-2 lg:col-span-1 space-y-5">
               <div className="flex items-center gap-2.5">
                 <div className="bg-green-500/15 p-2 rounded-xl border border-green-500/25">
-                  <Zap className="h-5 w-5 text-green-400" fill="currentColor" />
+                  <FontAwesomeIcon icon={faChargingStation} className="h-5 w-5 text-green-400" />
                 </div>
                 <span
                   className="text-lg font-bold text-white"
-                  style={{ fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontFamily: "'Poppins', sans-serif" }}
                 >
                   EvGenee
                 </span>

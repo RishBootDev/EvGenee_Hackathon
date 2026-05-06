@@ -13,7 +13,9 @@ interface LocationPickerProps {
 const DEFAULT_CENTER: [number, number] = [28.6139, 77.209]; // New Delhi
 
 function makeMarkerIcon() {
-  const svg = renderToStaticMarkup(<MapPin size={32} fill="#ef4444" color="white" strokeWidth={1.5} />);
+  const svg = renderToStaticMarkup(
+    <MapPin size={32} fill="#ef4444" color="white" strokeWidth={1.5} />,
+  );
   return L.divIcon({
     className: "bg-transparent border-0",
     html: `<div style="transform: translate(-50%, -100%); width: 32px; height: 32px;">${svg}</div>`,
@@ -43,7 +45,7 @@ function LocationMarker({ lat, lng, onChange }: LocationPickerProps) {
         }
       },
     }),
-    [onChange]
+    [onChange],
   );
 
   return (
@@ -73,7 +75,9 @@ export function LocationPicker({ lat, lng, onChange }: LocationPickerProps) {
           attribution='&copy; <a href="https://osm.org/copyright">OSM</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {lat && lng ? <LocationMarker lat={lat} lng={lng} onChange={onChange} /> : (
+        {lat && lng ? (
+          <LocationMarker lat={lat} lng={lng} onChange={onChange} />
+        ) : (
           <ClickToSetInitial onChange={onChange} />
         )}
       </MapContainer>
