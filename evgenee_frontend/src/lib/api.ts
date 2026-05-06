@@ -46,6 +46,7 @@ export type AuthUser = {
   email: string;
   role: "user" | "StationOwner" | "admin";
   vehicle?: Vehicle;
+  vehicleNumbers?: string[];
   createdAt?: string;
 };
 
@@ -112,7 +113,7 @@ export const AuthAPI = {
   }) => api.post("/users/register", d),
   login: (d: { email: string; password: string }) => api.post("/users/login", d),
   profile: () => api.get("/users/profile"),
-  updateProfile: (d: { name?: string; vehicle?: Vehicle }) => api.put("/users/profile", d),
+  updateProfile: (d: { name?: string; vehicle?: Vehicle; vehicleNumbers?: string[] }) => api.put("/users/profile", d),
   logout: () => api.post("/users/logout"),
 };
 

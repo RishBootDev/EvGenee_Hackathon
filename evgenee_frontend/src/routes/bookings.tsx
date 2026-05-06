@@ -552,12 +552,6 @@ function BookingsPage() {
                     </span>
                     <span className="text-white">{formatCurrency(selectedBooking.totalCost)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/40">Platform Fee</span>
-                    <span className="text-white">
-                      {formatCurrency(selectedBooking.platformFee)}
-                    </span>
-                  </div>
                   <div className="pt-1.5 border-t border-white/10 flex justify-between font-bold">
                     <span className="text-white">Grand Total</span>
                     <span className="text-primary">
