@@ -37,7 +37,6 @@ function NewStation() {
     email: "",
     amenities: "Restroom, Cafe, WiFi",
     image: "",
-    platformFee: "5",
     isOpen: true,
   });
   const [connectors, setConnectors] = useState<{ type: string; price: string }[]>([
@@ -89,7 +88,6 @@ function NewStation() {
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
-        platformFee: Number(form.platformFee),
         isOpen: form.isOpen,
       });
       toast.success("Station added!");
@@ -280,18 +278,6 @@ function NewStation() {
         </Section>
 
         <Section title="Connectors & Pricing">
-          <div className="mb-3">
-            <Field label="Platform Fee (%)">
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                required
-                value={form.platformFee}
-                onChange={(e) => setForm({ ...form, platformFee: e.target.value })}
-              />
-            </Field>
-          </div>
           <Label className="block mb-2">Connectors</Label>
           {connectors.map((c, i) => (
             <div key={i} className="flex gap-2">

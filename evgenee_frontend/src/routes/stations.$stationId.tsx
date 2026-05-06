@@ -49,6 +49,12 @@ function StationDetail() {
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [booking, setBooking] = useState(false);
 
+  useEffect(() => {
+    if (user?.vehicleNumbers?.length && !vehicleNumber) {
+      setVehicleNumber(user.vehicleNumbers[0]);
+    }
+  }, [user, vehicleNumber]);
+
   // Review states
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
@@ -169,10 +175,7 @@ function StationDetail() {
       ? parseFloat((station.chargingSpeed * durationHours).toFixed(2))
       : 0;
     const totalCost = parseFloat((estimatedKWh * pricePerKWh).toFixed(2));
-    const platformFee = station
-      ? parseFloat(((totalCost * station.platformFee) / 100).toFixed(2))
-      : 0;
-    const grandTotal = parseFloat((totalCost + platformFee).toFixed(2));
+    const grandTotal = totalCost;
     const advancePayment = parseFloat((grandTotal * 0.2).toFixed(2));
 
     setBooking(true);
@@ -332,22 +335,18 @@ function StationDetail() {
 
       <div className="p-4 space-y-4">
         {/* Quick stats row matching ref design */}
-        <div className="bg-card border-2 border-destructive/20 rounded-2xl p-4 grid grid-cols-3 gap-2 shadow-[var(--shadow-card)]">
+        <div className="bg-card border-2 border-destructive/20 rounded-2xl p-4 grid grid-cols-2 gap-2 shadow-[var(--shadow-card)]">
           <div className="text-center border-r border-border">
             <p className="text-destructive font-bold text-sm">
               {station.typeOfConnectors[0] ?? "—"}
             </p>
             <p className="text-xs text-muted-foreground">Connection</p>
           </div>
-          <div className="text-center border-r border-border">
+          <div className="text-center">
             <p className="text-destructive font-bold text-sm">
               {formatCurrency(minPrice, currency)}
             </p>
             <p className="text-xs text-muted-foreground">Per kWh</p>
-          </div>
-          <div className="text-center">
-            <p className="text-destructive font-bold text-sm">{station.platformFee}%</p>
-            <p className="text-xs text-muted-foreground">Platform Fee</p>
           </div>
         </div>
 
@@ -457,11 +456,31 @@ function StationDetail() {
               </div>
               <div className="space-y-1.5">
                 <Label>Vehicle no.</Label>
-                <Input
-                  placeholder="DL 1A 1234"
-                  value={vehicleNumber}
-                  onChange={(e) => setVehicleNumber(e.target.value)}
-                />
+                {user?.vehicleNumbers && user.vehicleNumbers.length > 0 ? (
+                  <Select value={vehicleNumber} onValueChange={setVehicleNumber}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select vehicle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {user.vehicleNumbers.map((v) => (
+                        <SelectItem key={v} value={v}>
+                          {v}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    <Input
+                      placeholder="DL 1A 1234"
+                      value={vehicleNumber}
+                      onChange={(e) => setVehicleNumber(e.target.value)}
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      No vehicles saved. Add them in your <Link to="/profile" className="text-primary underline">profile</Link>.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

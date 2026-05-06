@@ -24,6 +24,10 @@ const userSchema = new mongoose.Schema(
         enum: ["CCS2", "CHAdeMO", "Type2"],
       },
     },
+    vehicleNumbers: {
+      type: [String],
+      default: [],
+    },
     password: {
       type: String,
       select:false,

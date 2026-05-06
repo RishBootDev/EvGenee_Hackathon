@@ -91,7 +91,7 @@ export function LandingPage() {
               className="text-[clamp(3.5rem,10vw,7.5rem)] font-black leading-[0.88] tracking-tight text-white"
               style={{ fontFamily: "'Poppins', sans-serif" }}
             >
-              Charge Smarter. Drive Better.
+              Charge smarter,
               <br />
               <span
                 style={{
@@ -102,7 +102,7 @@ export function LandingPage() {
                   backgroundClip: "text",
                 }}
               >
-                Powering the future of electric mobility.
+                Drive better
               </span>
               <br />
             </h1>
