@@ -5,16 +5,14 @@ let socketUrl = "http://localhost:5000";
 try {
   const url = new URL(API_BASE_URL);
   socketUrl = url.origin;
-} catch (e) {
-  
-}
+} catch (e) {}
 
 export const socket: Socket = io(socketUrl, {
   autoConnect: false,
   withCredentials: true,
   auth: (cb) => {
     cb({ token: tokenStore.get() });
-  }
+  },
 });
 
 export function reconnectSocket() {
@@ -22,4 +20,3 @@ export function reconnectSocket() {
     socket.disconnect();
   }
 }
-

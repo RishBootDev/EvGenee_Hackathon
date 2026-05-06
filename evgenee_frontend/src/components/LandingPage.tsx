@@ -1,7 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
 import {
-  Zap,
   MapPin,
   BatteryCharging,
   ChevronRight,
@@ -13,136 +11,10 @@ import {
   Instagram,
   Linkedin,
   Github,
-  X,
+  Zap,
 } from "lucide-react";
-
-// ── EvGenee AI Assistant Popup ─────────────────────────────────
-function AIAssistantPopup() {
-  const [visible, setVisible] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), 1500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (dismissed) return null;
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: "80px",
-        right: "80px",
-        zIndex: 100,
-        display: "flex",
-        flexDirection: "row", // card on left, arrow pointing right toward mic
-        alignItems: "flex-end",
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0px)" : "translateY(10px)",
-        transition: "all 0.35s ease",
-      }}
-    >
-      {/* Card */}
-      <div
-        style={{
-          background: "linear-gradient(145deg, #0b1a2a, #0e2236)",
-          border: "1px solid rgba(52, 211, 153, 0.25)",
-          borderRadius: "16px",
-          padding: "14px 16px",
-          width: "220px",
-          backdropFilter: "blur(8px)",
-          boxShadow:
-            "0 0 0 1px rgba(52,211,153,0.06), 0 8px 30px rgba(0,0,0,0.6), 0 0 20px rgba(52,211,153,0.08)",
-          position: "relative",
-        }}
-      >
-        {/* Dismiss */}
-        <button
-          onClick={() => setDismissed(true)}
-          style={{
-            position: "absolute",
-            top: "10px",
-            right: "10px",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            color: "rgba(255,255,255,0.3)",
-          }}
-        >
-          <X size={13} />
-        </button>
-
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-          <div
-            style={{
-              background: "rgba(52, 211, 153, 0.12)",
-              border: "1px solid rgba(52, 211, 153, 0.25)",
-              borderRadius: "10px",
-              width: "32px",
-              height: "32px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Zap size={15} style={{ color: "#34d399" }} />
-          </div>
-
-          <span
-            style={{
-              fontWeight: 600,
-              fontSize: "13.5px",
-              color: "#e6f1ff",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            EvGenee AI
-          </span>
-          <span
-            style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: "10px",
-              color: "rgba(255,255,255,0.28)",
-              letterSpacing: "0.04em",
-              textTransform: "uppercase",
-            }}
-          >
-            your assistant
-          </span>
-        </div>
-
-        {/* Message */}
-        <p
-          style={{
-            fontSize: "12.8px",
-            color: "rgba(210, 230, 255, 0.75)",
-            lineHeight: "1.6",
-            margin: 0,
-          }}
-        >
-          Hi! I'm EvGenee AI. Need help finding a charger, checking pricing, or anything else?
-        </p>
-      </div>
-
-      {/* Arrow pointing RIGHT toward the mic button */}
-      <svg
-        width="8"
-        height="14"
-        viewBox="0 0 8 14"
-        style={{ marginBottom: "16px", flexShrink: 0 }}
-      >
-        <path
-          d="M0 0 L8 7 L0 14"
-          fill="#0e2236"
-          stroke="rgba(52, 211, 153, 0.25)"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </div>
-  );
-}
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faChargingStation } from "@fortawesome/free-solid-svg-icons";
 
 // ── Landing Page ────────────────────────────────────────────────
 export function LandingPage() {
@@ -151,9 +23,6 @@ export function LandingPage() {
       className="min-h-screen bg-[#000814] text-white overflow-x-hidden"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
-      {/* AI Assistant Popup */}
-      <AIAssistantPopup />
-
       {/* Grain texture */}
       <div
         className="fixed inset-0 z-0 pointer-events-none opacity-[0.03]"
@@ -184,7 +53,7 @@ export function LandingPage() {
       <nav className="relative z-50 flex items-center justify-between px-6 py-5 max-w-7xl mx-auto border-b border-white/5">
         <div className="flex items-center gap-2.5">
           <div className="bg-green-500/15 p-2 rounded-xl border border-green-500/25">
-            <Zap className="h-5 w-5 text-green-400" fill="currentColor" />
+            <FontAwesomeIcon icon={faChargingStation} className="h-5 w-5 text-green-400" />
           </div>
           <span
             className="text-xl font-bold tracking-tight text-white"
@@ -194,6 +63,11 @@ export function LandingPage() {
           </span>
         </div>
         <div className="flex items-center gap-3">
+          <Link to="/about">
+            <button className="hidden sm:block text-white/50 hover:text-white text-sm font-medium transition-colors px-4 py-2">
+              About
+            </button>
+          </Link>
           <Link to="/auth/login">
             <button className="hidden sm:block text-white/50 hover:text-white text-sm font-medium transition-colors px-4 py-2">
               Log in
@@ -218,31 +92,29 @@ export function LandingPage() {
           </p>
 
           <div className="grid lg:grid-cols-[1fr_300px] gap-8 items-end mb-14">
-            <h1
+            <h5
               className="text-[clamp(3.5rem,10vw,7.5rem)] font-black leading-[0.88] tracking-tight text-white"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "'Poppins', sans-serif" }}
             >
-              Charge Your EV ,
+              Charge Smarter. Drive Better.
               <br />
               <span
                 style={{
-                  background:
-                    "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
+                  background: "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
                 }}
               >
-                Anywhere,
-                Anytime!!
+                Powering the future of electric mobility.
               </span>
               <br />
-            </h1>
+            </h5>
 
             <div className="pb-2">
               <p className="text-blue-100/55 text-base leading-relaxed mb-7">
-                Book a fast charger in under 60 seconds. Real-time slots,
-                transparent pricing, zero surprises.
+                Book a fast charger in under 60 seconds. Real-time slots, transparent pricing, zero
+                surprises.
               </p>
               <Link to="/auth/register">
                 <button className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold px-7 py-3.5 rounded-full transition-colors group w-full sm:w-auto justify-center">
@@ -354,9 +226,7 @@ export function LandingPage() {
                   {num}
                 </p>
                 <div className="flex items-center gap-4">
-                  <div className="bg-white/5 rounded-xl p-2.5 border border-white/8">
-                    {icon}
-                  </div>
+                  <div className="bg-white/5 rounded-xl p-2.5 border border-white/8">{icon}</div>
                   <h3
                     className="text-xl font-bold text-white"
                     style={{ fontFamily: "'Syne', sans-serif" }}
@@ -414,8 +284,7 @@ export function LandingPage() {
                   className="text-6xl font-black mb-6 leading-none"
                   style={{
                     fontFamily: "'Syne', sans-serif",
-                    background:
-                      "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
+                    background: "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     backgroundClip: "text",
@@ -440,7 +309,7 @@ export function LandingPage() {
           <div className="mt-10">
             <Link to="/auth/register">
               <button className="bg-green-500 hover:bg-green-400 text-black text-sm font-bold px-8 py-3.5 rounded-full transition-colors">
-                Get started →
+                Get started
               </button>
             </Link>
           </div>
@@ -465,8 +334,8 @@ export function LandingPage() {
                 you drive.
               </h2>
               <p className="text-blue-100/45 text-base leading-relaxed mb-8 max-w-md">
-                From metro highways to Tier-2 towns, we're expanding faster than
-                India's EV fleet. New stations come online every week.
+                From metro highways to Tier-2 towns, we're expanding faster than India's EV fleet.
+                New stations come online every week.
               </p>
             </div>
             <div className="relative rounded-2xl overflow-hidden border border-white/8">
@@ -509,24 +378,20 @@ export function LandingPage() {
                   className="text-4xl sm:text-5xl font-extrabold text-white leading-tight"
                   style={{ fontFamily: "'Syne', sans-serif" }}
                 >
-                  Your next trip,
+                  Your next trip, fully charged.
                   <br />
                   <span
                     style={{
-                      background:
-                        "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
+                      background: "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                       backgroundClip: "text",
                     }}
-                  >
-                    fully charged.
-                  </span>
+                  ></span>
                 </h2>
               </div>
               <Link to="/auth/register" className="shrink-0">
                 <button className="flex items-center gap-3 bg-green-500 hover:bg-green-400 text-black font-bold px-8 py-4 rounded-full transition-colors text-base">
-                  <BatteryCharging className="h-5 w-5" />
                   Create free account
                 </button>
               </Link>
@@ -542,7 +407,7 @@ export function LandingPage() {
             <div className="col-span-2 lg:col-span-1 space-y-5">
               <div className="flex items-center gap-2.5">
                 <div className="bg-green-500/15 p-2 rounded-xl border border-green-500/25">
-                  <Zap className="h-5 w-5 text-green-400" fill="currentColor" />
+                  <FontAwesomeIcon icon={faChargingStation} className="h-5 w-5 text-green-400" />
                 </div>
                 <span
                   className="text-lg font-bold text-white"
@@ -552,15 +417,18 @@ export function LandingPage() {
                 </span>
               </div>
               <p className="text-blue-100/35 text-sm leading-relaxed">
-                India's fastest-growing EV charging network. Built for drivers
-                who don't have time to wait.
+                India's fastest-growing EV charging network. Built for drivers who don't have time
+                to wait.
               </p>
               <div className="flex gap-3">
                 {[
                   { icon: <Twitter className="h-4 w-4" />, href: "#" },
                   { icon: <Linkedin className="h-4 w-4" />, href: "#" },
                   { icon: <Instagram className="h-4 w-4" />, href: "#" },
-                  { icon: <Github className="h-4 w-4" />, href: "#" },
+                  {
+                    icon: <Github className="h-4 w-4" />,
+                    href: "https://github.com/RishBootDev/EvGenee_Hackathon",
+                  },
                 ].map(({ icon, href }, i) => (
                   <a
                     key={i}
@@ -631,10 +499,7 @@ export function LandingPage() {
           </div>
 
           <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p
-              className="text-white/20 text-xs"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
+            <p className="text-white/20 text-xs" style={{ fontFamily: "'DM Mono', monospace" }}>
               © {new Date().getFullYear()} EvGenee Network Pvt. Ltd.
             </p>
             <div className="flex gap-6 text-white/20 text-xs">

@@ -18,7 +18,13 @@ export function StationsMap(props: {
 }) {
   if (typeof window === "undefined") return <div className="h-full w-full bg-muted" />;
   return (
-    <Suspense fallback={<div className="h-full w-full grid place-items-center bg-muted"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}>
+    <Suspense
+      fallback={
+        <div className="h-full w-full grid place-items-center bg-muted">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      }
+    >
       <InnerMap {...props} />
     </Suspense>
   );

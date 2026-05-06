@@ -8,7 +8,13 @@ type AuthCtx = {
   isAuthed: boolean;
   isOwner: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
-  register: (d: { name: string; email: string; password: string; role?: string; vehicle?: Vehicle }) => Promise<AuthUser>;
+  register: (d: {
+    name: string;
+    email: string;
+    password: string;
+    role?: string;
+    vehicle?: Vehicle;
+  }) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   setUser: (u: AuthUser | null) => void;
@@ -47,8 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user) {
       // Update token and reconnect with fresh auth so AI voice chat works
-      reconnectSocket();       // updates socket.auth and disconnects
-      socket.connect();        // reconnect with the new token
+      reconnectSocket(); // updates socket.auth and disconnects
+      socket.connect(); // reconnect with the new token
       socket.emit("user:subscribe", user.id);
     } else {
       socket.disconnect();
@@ -84,7 +90,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    try { await AuthAPI.logout(); } catch { /* ignore */ }
+    try {
+      await AuthAPI.logout();
+    } catch {
+      /* ignore */
+    }
     tokenStore.clear();
     setUser(null);
   };

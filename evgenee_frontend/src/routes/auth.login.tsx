@@ -4,7 +4,9 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Zap, Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faChargingStation } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "sonner";
 import { getApiError } from "@/lib/utils";
 import { tokenStore } from "@/lib/api";
@@ -43,22 +45,25 @@ function LoginPage() {
   return (
     <div className="min-h-screen bg-[#000814] flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm">
-
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex h-14 w-14 rounded-2xl bg-gradient-to-br from-green-600 to-green-400 items-center justify-center mb-4">
-            <Zap className="h-7 w-7 text-white" fill="white" />
+            <FontAwesomeIcon icon={faChargingStation} className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight mb-1">EvGenee</h1>
           <p className="text-white/40 text-sm">Sign in to find chargers near you</p>
         </div>
 
         {/* Form */}
-        <form onSubmit={submit} className="bg-white/[0.04] border border-white/8 rounded-3xl p-6 space-y-4">
-
+        <form
+          onSubmit={submit}
+          className="bg-white/[0.04] border border-white/8 rounded-3xl p-6 space-y-4"
+        >
           {/* Email */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-white/40 uppercase tracking-wide">Email</Label>
+            <Label className="text-xs font-semibold text-white/40 uppercase tracking-wide">
+              Email
+            </Label>
             <Input
               id="email"
               type="email"
@@ -72,7 +77,9 @@ function LoginPage() {
 
           {/* Password */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-white/40 uppercase tracking-wide">Password</Label>
+            <Label className="text-xs font-semibold text-white/40 uppercase tracking-wide">
+              Password
+            </Label>
             <div className="relative">
               <Input
                 id="password"
@@ -104,7 +111,9 @@ function LoginPage() {
 
           <p className="text-center text-sm text-white/40">
             No account?{" "}
-            <Link to="/auth/register" className="text-primary font-semibold hover:underline">Register</Link>
+            <Link to="/auth/register" className="text-primary font-semibold hover:underline">
+              Register
+            </Link>
           </p>
         </form>
       </div>

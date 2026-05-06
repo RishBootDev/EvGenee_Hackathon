@@ -49,7 +49,11 @@ export type AuthUser = {
   createdAt?: string;
 };
 
-export type Pricing = { priceperKWh: number; connectorType: string; currency: "INR" | "USD" | "EUR" };
+export type Pricing = {
+  priceperKWh: number;
+  connectorType: string;
+  currency: "INR" | "USD" | "EUR";
+};
 
 export type Station = {
   _id: string;
@@ -99,8 +103,13 @@ export type Booking = {
 
 // ===== Auth =====
 export const AuthAPI = {
-  register: (d: { name: string; email: string; password: string; role?: string; vehicle?: Vehicle }) =>
-    api.post("/users/register", d),
+  register: (d: {
+    name: string;
+    email: string;
+    password: string;
+    role?: string;
+    vehicle?: Vehicle;
+  }) => api.post("/users/register", d),
   login: (d: { email: string; password: string }) => api.post("/users/login", d),
   profile: () => api.get("/users/profile"),
   updateProfile: (d: { name?: string; vehicle?: Vehicle }) => api.put("/users/profile", d),
@@ -116,7 +125,8 @@ export const StationsAPI = {
   details: (id: string) => api.get(`/stations/${id}`),
   update: (id: string, d: Partial<Station>) => api.put(`/stations/${id}`, d),
   toggle: (id: string) => api.patch(`/stations/${id}/toggle`),
-  review: (id: string, d: { comment: string; rating: number }) => api.post(`/stations/${id}/review`, d),
+  review: (id: string, d: { comment: string; rating: number }) =>
+    api.post(`/stations/${id}/review`, d),
 };
 
 // ===== Bookings =====
@@ -142,8 +152,10 @@ export const BookingsAPI = {
   my: (params?: { status?: string; page?: number; limit?: number }) =>
     api.get("/bookings/my-bookings", { params }),
   details: (id: string) => api.get(`/bookings/${id}`),
-  station: (id: string, params?: { status?: string; date?: string; page?: number; limit?: number }) =>
-    api.get(`/bookings/station/${id}`, { params }),
+  station: (
+    id: string,
+    params?: { status?: string; date?: string; page?: number; limit?: number },
+  ) => api.get(`/bookings/station/${id}`, { params }),
   cancel: (id: string, d?: { reason?: string }) => api.post(`/bookings/${id}/cancel`, d ?? {}),
   checkIn: (id: string, d: { otp: string }) => api.post(`/bookings/${id}/check-in`, d),
   complete: (id: string) => api.post(`/bookings/${id}/complete`),

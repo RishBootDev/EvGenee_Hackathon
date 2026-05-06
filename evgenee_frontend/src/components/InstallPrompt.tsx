@@ -43,8 +43,8 @@ export function InstallPrompt() {
       <div className="bg-card/95 backdrop-blur-xl border border-border rounded-2xl p-4 shadow-[var(--shadow-elevated)] relative overflow-hidden">
         {/* Background glow */}
         <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 blur-3xl rounded-full" />
-        
-        <button 
+
+        <button
           onClick={() => setShow(false)}
           className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -60,8 +60,8 @@ export function InstallPrompt() {
             <p className="text-xs text-muted-foreground mt-1">
               Add to your home screen for the best experience and offline access.
             </p>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={handleInstall}
               className="mt-3 w-full bg-[image:var(--gradient-primary)] text-primary-foreground font-bold text-xs rounded-lg shadow-sm"
             >

@@ -4,8 +4,6 @@ import { Map, Calendar, User, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
-
-
 export function BottomNav() {
   const loc = useLocation();
   const { isOwner, isAuthed } = useAuth();
@@ -15,8 +13,6 @@ export function BottomNav() {
 
   if (loc.pathname.startsWith("/auth")) return null;
   if (!isAuthed) return null;
-
-
 
   const navItems = [
     { to: "/", label: "Map", icon: Map },
@@ -45,13 +41,13 @@ export function BottomNav() {
               to={to}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 py-2.5 text-xs font-medium transition-colors",
-                active ? "text-primary" : "text-white/35"
+                active ? "text-primary" : "text-white/35",
               )}
             >
               <div
                 className={cn(
                   "h-9 w-9 rounded-full flex items-center justify-center transition-all",
-                  active && "bg-primary/15 ring-1 ring-primary/30"
+                  active && "bg-primary/15 ring-1 ring-primary/30",
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -60,8 +56,6 @@ export function BottomNav() {
             </Link>
           );
         })}
-
-
       </div>
     </nav>
   );

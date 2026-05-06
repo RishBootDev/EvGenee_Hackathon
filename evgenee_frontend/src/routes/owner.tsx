@@ -1,9 +1,9 @@
-import { createFileRoute, Outlet } from '@tanstack/react-router'
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/owner')({
+export const Route = createFileRoute("/owner")({
   component: OwnerLayout,
-})
+});
 
 function OwnerLayout() {
-  return <Outlet />
+  return <Outlet />;
 }

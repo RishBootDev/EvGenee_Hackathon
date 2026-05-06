@@ -6,8 +6,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Calendar, Clock, Loader2, MapPin, Zap, X, KeyRound, CheckCircle2, Eye, Info } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Calendar,
+  Clock,
+  Loader2,
+  MapPin,
+  Zap,
+  X,
+  KeyRound,
+  CheckCircle2,
+  Eye,
+  Info,
+} from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faChargingStation } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "sonner";
 import { formatCurrency, getApiError } from "@/lib/utils";
 import { format } from "date-fns";
@@ -54,11 +73,18 @@ function PendingCountdown({ createdAt }: { createdAt: string }) {
     return () => clearInterval(interval);
   }, [createdAt]);
 
-  const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-  const s = (timeLeft % 60).toString().padStart(2, '0');
+  const m = Math.floor(timeLeft / 60)
+    .toString()
+    .padStart(2, "0");
+  const s = (timeLeft % 60).toString().padStart(2, "0");
 
-  if (timeLeft === 0) return <span className="text-destructive font-bold text-[10px]">Expired</span>;
-  return <span className="text-destructive font-bold text-[10px] animate-pulse">⏱ {m}:{s} left</span>;
+  if (timeLeft === 0)
+    return <span className="text-destructive font-bold text-[10px]">Expired</span>;
+  return (
+    <span className="text-destructive font-bold text-[10px] animate-pulse">
+      ⏱ {m}:{s} left
+    </span>
+  );
 }
 
 function BookingsPage() {
@@ -113,11 +139,12 @@ function BookingsPage() {
     }
   }, [isAuthed]);
 
-  if (authLoading) return (
-    <div className="h-screen grid place-items-center bg-[#000814]">
-      <Loader2 className="h-7 w-7 animate-spin text-primary" />
-    </div>
-  );
+  if (authLoading)
+    return (
+      <div className="h-screen grid place-items-center bg-[#000814]">
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
+      </div>
+    );
   if (!isAuthed) return <Navigate to="/auth/login" />;
 
   const filtered = bookings.filter((b) => {
@@ -140,7 +167,6 @@ function BookingsPage() {
     }
   };
 
-
   const complete = async (b: Booking) => {
     setBusyId(b._id);
 
@@ -156,12 +182,14 @@ function BookingsPage() {
       }
     };
 
-    const remainingPayment = parseFloat((b.grandTotal * 0.80).toFixed(2));
+    const remainingPayment = parseFloat((b.grandTotal * 0.8).toFixed(2));
 
     if (remainingPayment > 0) {
       try {
-        const station = typeof b.station === 'object' ? (b.station as Station) : null;
-        const pricing = station?.pricing?.find(p => p.connectorType === b.connectorType) || station?.pricing?.[0];
+        const station = typeof b.station === "object" ? (b.station as Station) : null;
+        const pricing =
+          station?.pricing?.find((p) => p.connectorType === b.connectorType) ||
+          station?.pricing?.[0];
         const currency = pricing?.currency || "INR";
 
         const orderRes = await PaymentAPI.createOrder({ amount: remainingPayment, currency });
@@ -172,14 +200,14 @@ function BookingsPage() {
           amount: order.amount,
           currency: order.currency,
           name: "EvGenee Charging",
-          description: `Remaining payment for ${station?.name || 'Booking'}`,
+          description: `Remaining payment for ${station?.name || "Booking"}`,
           order_id: order.id,
           handler: async function (response: any) {
             try {
               await PaymentAPI.updatePayment({
                 orderId: order.id,
                 paymentId: response.razorpay_payment_id,
-                status: "paid"
+                status: "paid",
               });
               await executeComplete();
             } catch (err) {
@@ -188,17 +216,17 @@ function BookingsPage() {
             }
           },
           prefill: {
-            name: typeof b.user === 'object' ? b.user.name : "EvGenee User",
-            email: typeof b.user === 'object' ? b.user.email : "user@example.com",
-            contact: "9999999999"
+            name: typeof b.user === "object" ? b.user.name : "EvGenee User",
+            email: typeof b.user === "object" ? b.user.email : "user@example.com",
+            contact: "9999999999",
           },
           theme: { color: "#22c55e" },
           modal: {
-            ondismiss: function() {
+            ondismiss: function () {
               toast.error("Payment cancelled. Please pay to complete.");
               setBusyId(null);
-            }
-          }
+            },
+          },
         };
 
         const rzp = new (window as any).Razorpay(options);
@@ -231,12 +259,14 @@ function BookingsPage() {
       }
     };
 
-    const advancePayment = parseFloat((b.grandTotal * 0.20).toFixed(2));
+    const advancePayment = parseFloat((b.grandTotal * 0.2).toFixed(2));
 
     if (advancePayment > 0) {
       try {
-        const station = typeof b.station === 'object' ? (b.station as Station) : null;
-        const pricing = station?.pricing?.find(p => p.connectorType === b.connectorType) || station?.pricing?.[0];
+        const station = typeof b.station === "object" ? (b.station as Station) : null;
+        const pricing =
+          station?.pricing?.find((p) => p.connectorType === b.connectorType) ||
+          station?.pricing?.[0];
         const currency = pricing?.currency || "INR";
 
         const orderRes = await PaymentAPI.createOrder({ amount: advancePayment, currency });
@@ -247,14 +277,14 @@ function BookingsPage() {
           amount: order.amount,
           currency: order.currency,
           name: "EvGenee Charging",
-          description: `Advance payment for ${station?.name || 'Booking'}`,
+          description: `Advance payment for ${station?.name || "Booking"}`,
           order_id: order.id,
           handler: async function (response: any) {
             try {
               await PaymentAPI.updatePayment({
                 orderId: order.id,
                 paymentId: response.razorpay_payment_id,
-                status: "paid"
+                status: "paid",
               });
               await executeConfirmAdvance();
             } catch (err) {
@@ -263,17 +293,17 @@ function BookingsPage() {
             }
           },
           prefill: {
-            name: typeof b.user === 'object' ? b.user.name : "EvGenee User",
-            email: typeof b.user === 'object' ? b.user.email : "user@example.com",
-            contact: "9999999999"
+            name: typeof b.user === "object" ? b.user.name : "EvGenee User",
+            email: typeof b.user === "object" ? b.user.email : "user@example.com",
+            contact: "9999999999",
           },
           theme: { color: "#22c55e" },
           modal: {
-            ondismiss: function() {
+            ondismiss: function () {
               toast.error("Payment cancelled. Please pay to confirm.");
               setBusyId(null);
-            }
-          }
+            },
+          },
         };
 
         const rzp = new (window as any).Razorpay(options);
@@ -292,12 +322,11 @@ function BookingsPage() {
   };
 
   return (
-    <div
-      className="min-h-screen bg-[#000814] text-white"
-      style={{ paddingBottom: "5rem" }}
-    >
-      <div className="max-w-2xl mx-auto px-4 pt-8" style={{ paddingTop: "calc(var(--safe-top) + 2rem)" }}>
-
+    <div className="min-h-screen bg-[#000814] text-white" style={{ paddingBottom: "5rem" }}>
+      <div
+        className="max-w-2xl mx-auto px-4 pt-8"
+        style={{ paddingTop: "calc(var(--safe-top) + 2rem)" }}
+      >
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-extrabold text-white tracking-tight mb-1">My Bookings</h1>
@@ -307,9 +336,24 @@ function BookingsPage() {
         {/* Tabs */}
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="w-full grid grid-cols-3 bg-white/5 border border-white/8 rounded-xl p-1 mb-5">
-            <TabsTrigger value="all" className="rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-white text-white/40">All</TabsTrigger>
-            <TabsTrigger value="active" className="rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-white text-white/40">Active</TabsTrigger>
-            <TabsTrigger value="history" className="rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-white text-white/40">History</TabsTrigger>
+            <TabsTrigger
+              value="all"
+              className="rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-white text-white/40"
+            >
+              All
+            </TabsTrigger>
+            <TabsTrigger
+              value="active"
+              className="rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-white text-white/40"
+            >
+              Active
+            </TabsTrigger>
+            <TabsTrigger
+              value="history"
+              className="rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-white text-white/40"
+            >
+              History
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value={tab} className="space-y-3">
@@ -323,7 +367,9 @@ function BookingsPage() {
                   <Calendar className="h-8 w-8 text-white/20" />
                 </div>
                 <p className="text-white/40 font-medium">No bookings yet</p>
-                <p className="text-white/20 text-sm mt-1">Your charging sessions will appear here</p>
+                <p className="text-white/20 text-sm mt-1">
+                  Your charging sessions will appear here
+                </p>
               </div>
             ) : (
               filtered.map((b) => {
@@ -331,15 +377,25 @@ function BookingsPage() {
                 const isBusy = busyId === b._id;
                 const gradClass = iconColor[b.status] ?? "from-green-600 to-green-400";
                 return (
-                  <div key={b._id} className="bg-white/[0.04] border border-white/8 rounded-2xl p-4 space-y-3 hover:bg-white/[0.06] transition-colors">
+                  <div
+                    key={b._id}
+                    className="bg-white/[0.04] border border-white/8 rounded-2xl p-4 space-y-3 hover:bg-white/[0.06] transition-colors"
+                  >
                     {/* Station info + status */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${gradClass} grid place-items-center shrink-0`}>
-                          <Zap className="h-5 w-5 text-white" fill="white" />
+                        <div
+                          className={`h-12 w-12 rounded-xl bg-gradient-to-br ${gradClass} grid place-items-center shrink-0`}
+                        >
+                          <FontAwesomeIcon
+                            icon={faChargingStation}
+                            className="h-5 w-5 text-white"
+                          />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-bold text-white truncate">{station?.name ?? "Station"}</p>
+                          <p className="font-bold text-white truncate">
+                            {station?.name ?? "Station"}
+                          </p>
                           <p className="text-xs text-white/40 flex items-center gap-1 truncate mt-0.5">
                             <MapPin className="h-3 w-3 shrink-0" />
                             {station?.address?.city ?? ""}
@@ -347,7 +403,9 @@ function BookingsPage() {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <span className={`text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wide shrink-0 ${statusColor[b.status]}`}>
+                        <span
+                          className={`text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wide shrink-0 ${statusColor[b.status]}`}
+                        >
                           {b.status}
                         </span>
                         {b.status === "pending" && b.createdAt && (
@@ -371,8 +429,12 @@ function BookingsPage() {
                     {/* Price + actions */}
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-white/30 mb-1">{b.connectorType} · {b.estimatedKWh} kWh</p>
-                        <p className="text-xl font-extrabold text-white">{formatCurrency(b.grandTotal)}</p>
+                        <p className="text-xs text-white/30 mb-1">
+                          {b.connectorType} · {b.estimatedKWh} kWh
+                        </p>
+                        <p className="text-xl font-extrabold text-white">
+                          {formatCurrency(b.grandTotal)}
+                        </p>
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -381,7 +443,8 @@ function BookingsPage() {
                           disabled={loadingDetail}
                           className="bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 rounded-xl text-xs"
                         >
-                          <Eye className="h-3.5 w-3.5 mr-1" />Details
+                          <Eye className="h-3.5 w-3.5 mr-1" />
+                          Details
                         </Button>
                         {b.status === "confirmed" && (
                           <>
@@ -391,7 +454,8 @@ function BookingsPage() {
                               disabled={isBusy}
                               className="bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 rounded-xl text-xs"
                             >
-                              <X className="h-3.5 w-3.5 mr-1" />Cancel
+                              <X className="h-3.5 w-3.5 mr-1" />
+                              Cancel
                             </Button>
                           </>
                         )}
@@ -402,7 +466,8 @@ function BookingsPage() {
                             disabled={isBusy}
                             className="bg-gradient-to-r from-green-600 to-green-400 text-white rounded-xl text-xs font-bold"
                           >
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />Pay Balance & Complete
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                            Pay Balance & Complete
                           </Button>
                         )}
                         {b.status === "pending" && (
@@ -412,7 +477,8 @@ function BookingsPage() {
                             disabled={isBusy}
                             className="bg-gradient-to-r from-red-600 to-red-400 text-white rounded-xl text-xs font-bold"
                           >
-                            <Zap className="h-3.5 w-3.5 mr-1" />Pay 20% Advance
+                            <Zap className="h-3.5 w-3.5 mr-1" />
+                            Pay 20% Advance
                           </Button>
                         )}
                       </div>
@@ -434,19 +500,30 @@ function BookingsPage() {
           {selectedBooking && (
             <div className="space-y-4 py-2">
               <div className="flex items-center gap-3">
-                <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${iconColor[selectedBooking.status] ?? "from-green-600 to-green-400"} grid place-items-center shrink-0`}>
-                  <Zap className="h-6 w-6 text-white" fill="white" />
+                <div
+                  className={`h-12 w-12 rounded-xl bg-gradient-to-br ${iconColor[selectedBooking.status] ?? "from-green-600 to-green-400"} grid place-items-center shrink-0`}
+                >
+                  <FontAwesomeIcon icon={faChargingStation} className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <p className="font-bold text-white">{(selectedBooking.station as Station)?.name}</p>
-                  <p className="text-sm text-white/40">{(selectedBooking.station as Station)?.address?.city}, {(selectedBooking.station as Station)?.address?.street}</p>
+                  <p className="font-bold text-white">
+                    {(selectedBooking.station as Station)?.name}
+                  </p>
+                  <p className="text-sm text-white/40">
+                    {(selectedBooking.station as Station)?.address?.city},{" "}
+                    {(selectedBooking.station as Station)?.address?.street}
+                  </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 bg-white/5 p-3 rounded-xl border border-white/8">
                 <div className="space-y-0.5">
                   <p className="text-[10px] uppercase font-bold text-white/30">Status</p>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${statusColor[selectedBooking.status]}`}>{selectedBooking.status}</span>
+                  <span
+                    className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${statusColor[selectedBooking.status]}`}
+                  >
+                    {selectedBooking.status}
+                  </span>
                 </div>
                 <div className="space-y-0.5 text-right">
                   <p className="text-[10px] uppercase font-bold text-white/30">Connector</p>
@@ -454,11 +531,15 @@ function BookingsPage() {
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-[10px] uppercase font-bold text-white/30">Date</p>
-                  <p className="font-bold text-sm text-white">{format(new Date(selectedBooking.date), "MMM d, yyyy")}</p>
+                  <p className="font-bold text-sm text-white">
+                    {format(new Date(selectedBooking.date), "MMM d, yyyy")}
+                  </p>
                 </div>
                 <div className="space-y-0.5 text-right">
                   <p className="text-[10px] uppercase font-bold text-white/30">Time</p>
-                  <p className="font-bold text-sm text-white">{selectedBooking.startTime} – {selectedBooking.endTime}</p>
+                  <p className="font-bold text-sm text-white">
+                    {selectedBooking.startTime} – {selectedBooking.endTime}
+                  </p>
                 </div>
               </div>
 
@@ -466,36 +547,49 @@ function BookingsPage() {
                 <p className="text-xs font-bold text-white/30 uppercase px-1">Cost Breakdown</p>
                 <div className="bg-white/5 border border-white/8 rounded-xl p-3 space-y-1.5">
                   <div className="flex justify-between text-sm">
-                    <span className="text-white/40">Charging ({selectedBooking.estimatedKWh} kWh)</span>
+                    <span className="text-white/40">
+                      Charging ({selectedBooking.estimatedKWh} kWh)
+                    </span>
                     <span className="text-white">{formatCurrency(selectedBooking.totalCost)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-white/40">Platform Fee</span>
-                    <span className="text-white">{formatCurrency(selectedBooking.platformFee)}</span>
+                    <span className="text-white">
+                      {formatCurrency(selectedBooking.platformFee)}
+                    </span>
                   </div>
                   <div className="pt-1.5 border-t border-white/10 flex justify-between font-bold">
                     <span className="text-white">Grand Total</span>
-                    <span className="text-primary">{formatCurrency(selectedBooking.grandTotal)}</span>
+                    <span className="text-primary">
+                      {formatCurrency(selectedBooking.grandTotal)}
+                    </span>
                   </div>
                   <div className="flex justify-between text-xs pt-1">
                     <span className="text-white/40">Advance Paid (20%)</span>
-                    <span className="text-success">{formatCurrency(selectedBooking.grandTotal * 0.20)}</span>
+                    <span className="text-success">
+                      {formatCurrency(selectedBooking.grandTotal * 0.2)}
+                    </span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-white/40">Balance Due (80%)</span>
-                    <span className="text-destructive">{formatCurrency(selectedBooking.grandTotal * 0.80)}</span>
+                    <span className="text-destructive">
+                      {formatCurrency(selectedBooking.grandTotal * 0.8)}
+                    </span>
                   </div>
                 </div>
               </div>
-
             </div>
           )}
           <DialogFooter>
-            <Button className="w-full bg-gradient-to-r from-green-600 to-green-400 text-white rounded-xl font-bold" onClick={() => setSelectedBooking(null)}>Close</Button>
+            <Button
+              className="w-full bg-gradient-to-r from-green-600 to-green-400 text-white rounded-xl font-bold"
+              onClick={() => setSelectedBooking(null)}
+            >
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
