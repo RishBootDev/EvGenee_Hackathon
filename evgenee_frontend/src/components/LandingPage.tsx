@@ -57,13 +57,12 @@ export function LandingPage() {
           </div>
           <span
             className="text-xl font-bold tracking-tight text-white"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "'Poppins', sans-serif" }}
           >
             EvGenee
           </span>
         </div>
         <div className="flex items-center gap-3">
-          
           <Link to="/auth/login">
             <button className="hidden sm:block text-white/50 hover:text-white text-sm font-medium transition-colors px-4 py-2">
               Log in
@@ -88,7 +87,7 @@ export function LandingPage() {
           </p>
 
           <div className="grid lg:grid-cols-[1fr_300px] gap-8 items-end mb-14">
-            <h5
+            <h1
               className="text-[clamp(3.5rem,10vw,7.5rem)] font-black leading-[0.88] tracking-tight text-white"
               style={{ fontFamily: "'Poppins', sans-serif" }}
             >
@@ -96,7 +95,8 @@ export function LandingPage() {
               <br />
               <span
                 style={{
-                  background: "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
+                  background:
+                    "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
@@ -105,12 +105,12 @@ export function LandingPage() {
                 Powering the future of electric mobility.
               </span>
               <br />
-            </h5>
+            </h1>
 
             <div className="pb-2">
               <p className="text-blue-100/55 text-base leading-relaxed mb-7">
-                Book a fast charger in under 60 seconds. Real-time slots, transparent pricing, zero
-                surprises.
+                Book a fast charger in under 60 seconds. Real-time slots,
+                transparent pricing, zero surprises.
               </p>
               <Link to="/auth/register">
                 <button className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold px-7 py-3.5 rounded-full transition-colors group w-full sm:w-auto justify-center">
@@ -161,7 +161,7 @@ export function LandingPage() {
                 <p
                   className="text-4xl font-extrabold mb-1"
                   style={{
-                    fontFamily: "'Syne', sans-serif",
+                    fontFamily: "'Poppins', sans-serif",
                     background: "linear-gradient(90deg, #60a5fa, #34d399)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
@@ -222,10 +222,12 @@ export function LandingPage() {
                   {num}
                 </p>
                 <div className="flex items-center gap-4">
-                  <div className="bg-white/5 rounded-xl p-2.5 border border-white/8">{icon}</div>
+                  <div className="bg-white/5 rounded-xl p-2.5 border border-white/8">
+                    {icon}
+                  </div>
                   <h3
                     className="text-xl font-bold text-white"
-                    style={{ fontFamily: "'Syne', sans-serif" }}
+                    style={{ fontFamily: "'Poppins', sans-serif" }}
                   >
                     {title}
                   </h3>
@@ -246,7 +248,7 @@ export function LandingPage() {
           </p>
           <h2
             className="text-4xl font-extrabold text-white mb-14"
-            style={{ fontFamily: "'Syne', sans-serif" }}
+            style={{ fontFamily: "'Poppins', sans-serif" }}
           >
             Three steps to a full battery.
           </h2>
@@ -279,8 +281,9 @@ export function LandingPage() {
                 <p
                   className="text-6xl font-black mb-6 leading-none"
                   style={{
-                    fontFamily: "'Syne', sans-serif",
-                    background: "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
+                    fontFamily: "'Poppins', sans-serif",
+                    background:
+                      "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     backgroundClip: "text",
@@ -293,7 +296,7 @@ export function LandingPage() {
                 </div>
                 <h3
                   className="text-lg font-bold text-white mb-3"
-                  style={{ fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontFamily: "'Poppins', sans-serif" }}
                 >
                   {title}
                 </h3>
@@ -323,15 +326,15 @@ export function LandingPage() {
               </p>
               <h2
                 className="text-4xl sm:text-5xl font-extrabold text-white mb-5 leading-tight"
-                style={{ fontFamily: "'Syne', sans-serif" }}
+                style={{ fontFamily: "'Poppins', sans-serif" }}
               >
                 Growing where
                 <br />
                 you drive.
               </h2>
               <p className="text-blue-100/45 text-base leading-relaxed mb-8 max-w-md">
-                From metro highways to Tier-2 towns, we're expanding faster than India's EV fleet.
-                New stations come online every week.
+                From metro highways to Tier-2 towns, we're expanding faster than
+                India's EV fleet. New stations come online every week.
               </p>
             </div>
             <div className="relative rounded-2xl overflow-hidden border border-white/8">
@@ -372,18 +375,20 @@ export function LandingPage() {
                 </p>
                 <h2
                   className="text-4xl sm:text-5xl font-extrabold text-white leading-tight"
-                  style={{ fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontFamily: "'Poppins', sans-serif" }}
                 >
                   Your next trip, fully charged.
                   <br />
                   <span
                     style={{
-                      background: "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
+                      background:
+                        "linear-gradient(90deg, #60a5fa 0%, #22d3ee 50%, #34d399 100%)",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                       backgroundClip: "text",
                     }}
-                  ></span>
+                  >
+                  </span>
                 </h2>
               </div>
               <Link to="/auth/register" className="shrink-0">
@@ -407,24 +412,21 @@ export function LandingPage() {
                 </div>
                 <span
                   className="text-lg font-bold text-white"
-                  style={{ fontFamily: "'Syne', sans-serif" }}
+                  style={{ fontFamily: "'Poppins', sans-serif" }}
                 >
                   EvGenee
                 </span>
               </div>
               <p className="text-blue-100/35 text-sm leading-relaxed">
-                India's fastest-growing EV charging network. Built for drivers who don't have time
-                to wait.
+                India's fastest-growing EV charging network. Built for drivers
+                who don't have time to wait.
               </p>
               <div className="flex gap-3">
                 {[
                   { icon: <Twitter className="h-4 w-4" />, href: "#" },
                   { icon: <Linkedin className="h-4 w-4" />, href: "#" },
                   { icon: <Instagram className="h-4 w-4" />, href: "#" },
-                  {
-                    icon: <Github className="h-4 w-4" />,
-                    href: "https://github.com/RishBootDev/EvGenee_Hackathon",
-                  },
+                  { icon: <Github className="h-4 w-4" />, href: "#" },
                 ].map(({ icon, href }, i) => (
                   <a
                     key={i}
@@ -495,7 +497,10 @@ export function LandingPage() {
           </div>
 
           <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-white/20 text-xs" style={{ fontFamily: "'DM Mono', monospace" }}>
+            <p
+              className="text-white/20 text-xs"
+              style={{ fontFamily: "'DM Mono', monospace" }}
+            >
               © {new Date().getFullYear()} EvGenee Network Pvt. Ltd.
             </p>
             <div className="flex gap-6 text-white/20 text-xs">
