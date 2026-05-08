@@ -451,7 +451,7 @@ const createBooking = async (req, res, next) => {
           currency: pricing?.currency || 'INR',
         },
         status: booking.status,
-        otp: `Your check-in OTP: ${otp}`,
+        otp: `Your check in OTP: ${otp}`,
       },
     });
   } catch (error) {
@@ -506,7 +506,7 @@ const checkAvailability = async (req, res, next) => {
 
 
       let overlapping = 0;
-      // Use Sweep Line for slot availability check too
+   
       const slotEvents = [];
       for (const b of bookings) {
         const bStart = timeToMinutes(b.startTime);
