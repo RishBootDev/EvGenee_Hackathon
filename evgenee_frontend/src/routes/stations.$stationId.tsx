@@ -106,7 +106,8 @@ function ChargerAvailabilityCard({
     ? selectedSlot.availableUnits
     : (nearestAvailable?.availableUnits ?? 0);
 
-  const pct = totalMachines > 0 ? (available / totalMachines) * 100 : 0;
+  const totalUnits = totalMachines || 1;
+  const pct = totalUnits > 0 ? (available / totalUnits) * 100 : 0;
 
   const noSlots = !hasUpcomingSlots;
   const statusColor = noSlots ? "text-white/30" : available === 0 ? "text-red-400" : pct <= 30 ? "text-amber-400" : "text-emerald-400";
@@ -132,7 +133,7 @@ function ChargerAvailabilityCard({
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-white/50 uppercase tracking-wider flex items-center gap-1.5">
           <PlugZap className="h-3.5 w-3.5 text-white/30" />
-          {connector} · {totalMachines} machine{totalMachines !== 1 ? "s" : ""} total
+          {connector} · {totalUnits} {totalUnits === 1 ? "Machine" : "Machines"}
         </span>
         <span className={cn("text-xs font-black px-2.5 py-1 rounded-full", badgeClass)}>
           {badgeLabel}
@@ -141,7 +142,7 @@ function ChargerAvailabilityCard({
 
       {/* One labelled pill per machine — clearly shows Machine 1, Machine 2… */}
       <div className="flex flex-wrap gap-2">
-        {Array.from({ length: totalMachines }).map((_, i) => {
+        {Array.from({ length: totalUnits }).map((_, i) => {
           const isFree = !noSlots && i < available;
           return (
             <div
@@ -184,7 +185,7 @@ function ChargerAvailabilityCard({
           <span className={cn("font-black", statusColor)}>
             {noSlots
               ? "No upcoming slots for today"
-              : `${available} of ${totalMachines} available`}
+              : `${available} of ${totalUnits} available`}
           </span>
           {selectedSlot && !noSlots && (
             <span className="text-white/30">for slot {selectedSlot.startTime}</span>
@@ -693,7 +694,7 @@ function StationDetail() {
                       {s.startTime}
                       {s.isAvailable && !expired && (
                         <span className="text-[10px] block font-normal opacity-80 mt-0.5">
-                          {s.availableUnits}/{s.totalUnits} units free
+                          {s.availableUnits}/{s.totalUnits || totalMachinesForConnector || 1} free
                         </span>
                       )}
                       {expired && (
