@@ -27,6 +27,9 @@ import {
   CheckCircle2,
   XCircle,
   PlugZap,
+  Clock,
+  Car,
+  Hash,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatCurrency, getApiError } from "@/lib/utils";
@@ -37,7 +40,7 @@ export const Route = createFileRoute("/stations/$stationId")({
   component: StationDetail,
 });
 
-type Slot = { startTime: string; endTime: string; isAvailable: boolean; availablePorts: number };
+type Slot = { startTime: string; endTime: string; isAvailable: boolean; availableUnits: number; totalUnits: number };
 
 // ─── IST-aware helpers ───────────────────────────────────────────────────────
 function getISTMinutes(): number {
@@ -100,8 +103,8 @@ function ChargerAvailabilityCard({
   const hasUpcomingSlots = slots.some((s) => !isSlotExpired(s, date));
   const nearestAvailable = slots.find((s) => s.isAvailable && !isSlotExpired(s, date));
   const available = selectedSlot
-    ? selectedSlot.availablePorts
-    : (nearestAvailable?.availablePorts ?? 0);
+    ? selectedSlot.availableUnits
+    : (nearestAvailable?.availableUnits ?? 0);
 
   const pct = totalMachines > 0 ? (available / totalMachines) * 100 : 0;
 
@@ -148,11 +151,18 @@ function ChargerAvailabilityCard({
                 noSlots
                   ? "bg-white/5 border-white/10 text-white/30"
                   : isFree
-                  ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
-                  : "bg-red-500/10 border-red-500/20 text-red-400/70",
+                  ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)] animate-in fade-in zoom-in duration-300"
+                  : "bg-red-500/10 border-red-500/20 text-red-400/70 opacity-60",
               )}
             >
-              <Zap className="h-3 w-3 shrink-0" />
+              {isFree ? (
+                <div className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </div>
+              ) : (
+                <Zap className="h-3 w-3 shrink-0" />
+              )}
               Machine {i + 1}
               <span className="text-[10px] font-normal opacity-70 ml-0.5">
                 {noSlots ? "—" : isFree ? "Free" : "Busy"}
@@ -333,8 +343,8 @@ function StationDetail() {
     }
 
     // ── NEW: guard — no machines available for this slot ─────────────────
-    if (selectedSlot.availablePorts === 0) {
-      toast.error("No chargers available for this slot. Please choose another.");
+    if (selectedSlot.availableUnits === 0) {
+      toast.error("No charger units available for this slot. Please choose another.");
       setSelectedSlot(null);
       return;
     }
@@ -531,9 +541,14 @@ function StationDetail() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="absolute bottom-4 left-4 right-4 text-white">
-          <Badge className="bg-success text-success-foreground mb-2">
-            {station.isOpen ? "OPEN" : "CLOSED"}
-          </Badge>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge className={station.isOpen ? "bg-success text-success-foreground" : "bg-slate-500 text-white"}>
+              {station.isOpen ? "OPEN NOW" : "CURRENTLY CLOSED"}
+            </Badge>
+            <span className="text-[10px] font-bold tracking-widest bg-black/40 px-2 py-0.5 rounded backdrop-blur-sm">
+              {station.openingHours || "24/7 SERVICE"}
+            </span>
+          </div>
           <h1 className="text-2xl font-bold">{station.name}</h1>
           <p className="text-sm opacity-90 flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" /> {station.address.street}, {station.address.city}
@@ -678,7 +693,7 @@ function StationDetail() {
                       {s.startTime}
                       {s.isAvailable && !expired && (
                         <span className="text-[10px] block font-normal opacity-80 mt-0.5">
-                          {s.availablePorts}/{totalMachinesForConnector} free
+                          {s.availableUnits}/{s.totalUnits} units free
                         </span>
                       )}
                       {expired && (
@@ -707,41 +722,83 @@ function StationDetail() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="space-y-1.5">
-                <Label>End time</Label>
-                <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                <Label className="text-xs font-bold uppercase tracking-wider opacity-60">End time</Label>
+                <div className="relative">
+                  <Input 
+                    type="time" 
+                    value={endTime} 
+                    onChange={(e) => setEndTime(e.target.value)} 
+                    className="bg-accent/30 border-border h-11 text-sm pl-10"
+                  />
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
               <div className="space-y-1.5">
-                <Label>Vehicle no.</Label>
-                {user?.vehicleNumbers && user.vehicleNumbers.length > 0 ? (
-                  <Select value={vehicleNumber} onValueChange={setVehicleNumber}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select vehicle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {user.vehicleNumbers.map((v) => (
-                        <SelectItem key={v} value={v}>
-                          {v}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="flex flex-col gap-1.5">
-                    <Input
-                      placeholder="DL 1A 1234"
-                      value={vehicleNumber}
-                      onChange={(e) => setVehicleNumber(e.target.value)}
-                    />
-                    <p className="text-[10px] text-muted-foreground">
-                      No vehicles saved. Add them in your{" "}
-                      <Link to="/profile" className="text-primary underline">
-                        profile
-                      </Link>
-                      .
-                    </p>
+                <Label className="text-xs font-bold uppercase tracking-wider opacity-60">Duration</Label>
+                <div className="h-11 flex items-center px-3 bg-muted/30 rounded-xl border border-border text-xs font-semibold text-muted-foreground">
+                  {selectedSlot ? "60 mins" : "—"}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-xs font-bold uppercase tracking-wider opacity-60">Vehicle Information</Label>
+              
+              {/* Fleet Selector (Badges) */}
+              {user?.savedVehicles && user.savedVehicles.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase">Select from your fleet:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {user.savedVehicles.map((v, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setVehicleNumber(v.vehicleNumber || "")}
+                        className={cn(
+                          "px-3 py-2 rounded-xl border text-[11px] font-bold transition-all flex items-center gap-1.5",
+                          vehicleNumber === v.vehicleNumber
+                            ? "bg-primary/10 border-primary text-primary shadow-[0_0_10px_rgba(16,185,129,0.1)]"
+                            : "bg-card border-border hover:border-primary/50 text-muted-foreground"
+                        )}
+                      >
+                        <Car className="h-3 w-3" />
+                        {v.nickname}
+                        <span className="text-[9px] opacity-50 font-normal">({v.vehicleNumber})</span>
+                      </button>
+                    ))}
                   </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase">
+                    {user?.savedVehicles && user.savedVehicles.length > 0 ? "Or enter manually:" : "Enter Vehicle Number:"}
+                  </p>
+                  {vehicleNumber && (
+                    <button 
+                      onClick={() => setVehicleNumber("")}
+                      className="text-[10px] text-destructive font-bold uppercase"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Input
+                    placeholder="e.g. MH 01 AB 1234"
+                    value={vehicleNumber}
+                    onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
+                    className="bg-accent/30 border-border h-12 text-sm font-mono tracking-wider pl-10"
+                  />
+                  <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+                {(!user?.savedVehicles || user.savedVehicles.length === 0) && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Tip: Save your cars in <Link to="/profile" className="text-primary underline font-bold">Profile</Link> for one-tap booking.
+                  </p>
                 )}
               </div>
             </div>

@@ -440,7 +440,15 @@ const getSystemPrompt = async (userId) => {
   const timeStr = now.toLocaleTimeString('en-US');
   
   const user = await User.findById(userId);
-  const profileInfo = user ? `\nUser Profile Info:\n- Name: ${user.name}\n- Vehicle Type: ${user.vehicle?.type || 'Not specified'}\n- Preferred Connector: ${user.vehicle?.connectorType || 'Not specified'}\n- Saved Vehicle Numbers: ${user.vehicleNumbers?.join(', ') || 'None'}\n` : "";
+  let profileInfo = "";
+  if (user) {
+    profileInfo = `\nUser Profile Info:\n- Name: ${user.name}\n`;
+    if (user.savedVehicles && user.savedVehicles.length > 0) {
+      profileInfo += `- Saved Vehicles:\n${user.savedVehicles.map(v => `  * ${v.nickname}: ${v.type} with ${v.connectorType} connector (Number: ${v.vehicleNumber || 'N/A'})`).join('\n')}\n`;
+    } else {
+      profileInfo += `- Vehicle Type: ${user.vehicle?.type || 'Not specified'}\n- Preferred Connector: ${user.vehicle?.connectorType || 'Not specified'}\n- Saved Vehicle Numbers: ${user.vehicleNumbers?.join(', ') || 'None'}\n`;
+    }
+  }
 
   return new SystemMessage(`You are EvGenee, a helpful, polite, and efficient voice assistant for EV Charging Station bookings.
 Ritul Jain my creator trained me on EvGenee platform. I must only respond to questions related EvGenee.
@@ -449,10 +457,16 @@ For any out-of-topic questions,say Ritul Jain my creator trained me on EvGenee P
 Current context:
 ${profileInfo}
 
+Guidelines for identifying the user's vehicle and connector:
+1. **Prioritize Saved Vehicles**: If the user mentions booking a charger but hasn't specified which car, and they have saved vehicles in their profile, ask: "Are you booking for your [Vehicle Nickname]?" instead of asking for the charger type.
+2. **Auto-fill Details**: Once the user confirms the vehicle (e.g., "Yes, for the Nexon"), automatically use that vehicle's connector type (e.g., CCS2) for all subsequent searches and bookings without asking again.
+3. **Handle Ambiguity**: If they have multiple saved vehicles, list them and ask which one they are using today.
+4. **Fallback**: If they have no saved vehicles, only then ask for the charger type.
+
 When searching for stations:
-1. If the user doesn't specify a connector type, use their "Preferred Connector" from the profile info above if available.
-2. If they have saved vehicle numbers, use them if relevant.
-3. Always check availability and mention the next available slot if the current one is full.
+1. Use the identified or confirmed connector type.
+2. If they have a saved vehicle number for the selected car, use it automatically for the booking.
+3. **Always check availability and mention exact units**: If the user asks about a station or slot, mention how many units are free (e.g., "There are 3 CCS2 units available"). If the current slot is full, mention that all units are occupied and suggest the next one.
 4. Suggest the best station based on road distance and travel time.
 
 Important:

@@ -24,47 +24,49 @@ const generateEmailTemplate = (title, content) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>EvGenee Notification</title>
+        <title>EvGenee</title>
         <style>
-            body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; }
-            .wrapper { width: 100%; table-layout: fixed; background-color: #f4f7f6; padding-bottom: 40px; }
-            .main { background-color: #ffffff; margin: 0 auto; width: 100%; max-width: 600px; border-spacing: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-            .header { background-color: #000814; padding: 30px; text-align: center; }
-            .logo-text { color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin: 0; }
-            .logo-accent { color: #22c55e; }
-            .content { padding: 40px 30px; line-height: 1.6; }
-            .title { font-size: 22px; font-weight: 700; color: #000814; margin-bottom: 20px; }
-            .otp-box { background-color: #f0fff4; border: 2px dashed #22c55e; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0; }
-            .otp-code { font-size: 36px; font-weight: 800; color: #22c55e; letter-spacing: 8px; margin: 0; }
-            .footer { background-color: #f8fafc; padding: 30px; text-align: center; border-top: 1px solid #edf2f7; }
-            .footer-text { font-size: 12px; color: #64748b; margin-bottom: 10px; }
-            .social-links { margin-top: 20px; }
-            .social-link { display: inline-block; margin: 0 10px; color: #22c55e; text-decoration: none; font-weight: 600; font-size: 13px; }
-            .btn { display: inline-block; padding: 12px 30px; background-color: #22c55e; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 20px; }
+            @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
+            body { margin: 0; padding: 0; font-family: 'DM Sans', Arial, sans-serif; background-color: #000814; color: #e2e8f0; }
+            .wrapper { width: 100%; background-color: #000814; padding: 40px 0; }
+            .main { background-color: #0a1122; margin: 0 auto; width: 100%; max-width: 600px; border-spacing: 0; border-radius: 24px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+            .header { background: linear-gradient(135deg, #0a1122 0%, #000814 100%); padding: 40px 30px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+            .logo-text { color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin: 0; text-transform: none; }
+            .logo-accent { color: #10b981; }
+            .content { padding: 40px 40px; line-height: 1.6; }
+            .title { font-size: 24px; font-weight: 700; color: #ffffff; margin-bottom: 24px; text-align: center; }
+            .body-text { color: #94a3b8; font-size: 16px; margin-bottom: 24px; }
+            .otp-box { background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.2); border-radius: 16px; padding: 30px; text-align: center; margin: 30px 0; }
+            .otp-code { font-size: 42px; font-weight: 800; color: #10b981; letter-spacing: 10px; margin: 0; text-shadow: 0 0 20px rgba(16,185,129,0.2); }
+            .footer { background-color: #000814; padding: 40px 30px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); }
+            .footer-text { font-size: 12px; color: #475569; margin-bottom: 8px; font-weight: 500; }
+            .social-link { display: inline-block; margin: 0 12px; color: #10b981; text-decoration: none; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+            .btn { display: inline-block; padding: 14px 36px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff !important; text-decoration: none; border-radius: 100px; font-weight: 700; font-size: 14px; margin-top: 20px; box-shadow: 0 10px 20px rgba(16,185,129,0.2); }
+            .highlight { color: #10b981; font-weight: 600; }
         </style>
     </head>
     <body>
         <div class="wrapper">
-            <table class="main">
+            <table class="main" align="center">
                 <tr>
                     <td class="header">
-                        <h1 class="logo-text">Ev<span class="logo-accent">Genee</span></h1>
+                        <div class="logo-text">Ev<span class="logo-accent">Genee</span></div>
                     </td>
                 </tr>
                 <tr>
                     <td class="content">
                         <h2 class="title">${title}</h2>
-                        ${content}
+                        <div class="body-text">${content}</div>
                     </td>
                 </tr>
                 <tr>
                     <td class="footer">
-                        <p class="footer-text">© ${new Date().getFullYear()} EvGenee Network Pvt. Ltd. All rights reserved.</p>
-                        <p class="footer-text">Bhopal, Madhya Pradesh, India</p>
-                        <div class="social-links">
-                            <a href="#" class="social-link">Website</a>
-                            <a href="#" class="social-link">Privacy Policy</a>
+                        <p class="footer-text">© ${new Date().getFullYear()} EvGenee Network Pvt. Ltd.</p>
+                        <p class="footer-text">The premium EV charging infrastructure of India.</p>
+                        <div style="margin-top: 25px;">
+                            <a href="#" class="social-link">Dashboard</a>
                             <a href="#" class="social-link">Support</a>
+                            <a href="#" class="social-link">Privacy</a>
                         </div>
                     </td>
                 </tr>
@@ -79,7 +81,7 @@ const sendEmail = async ({ to, subject, title, content }) => {
     try {
         const html = generateEmailTemplate(title, content);
         const info = await transporter.sendMail({
-            from: `"EvGenee Support" <${NODEMAILER_USER}>`,
+            from: `"EvGenee" <${NODEMAILER_USER}>`,
             to,
             subject,
             html

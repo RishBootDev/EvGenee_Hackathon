@@ -28,7 +28,7 @@ import { useAuth } from "@/lib/auth";
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
-function makeStationIcon(avail: boolean, active: boolean) {
+function makeStationIcon(avail: boolean, active: boolean, closed?: boolean) {
   const size = active ? 44 : 36;
   const icon = renderToStaticMarkup(
     <FontAwesomeIcon
@@ -36,9 +36,15 @@ function makeStationIcon(avail: boolean, active: boolean) {
       style={{ width: active ? 20 : 17, height: active ? 20 : 17, color: "white" }}
     />,
   );
+  
+  let className = "ev-pin";
+  if (closed) className += " closed-pin"; // Grey for closed
+  else if (!avail) className += " unavail"; // Amber/Red for full
+  if (active) className += " hovered";
+
   return L.divIcon({
     className: "",
-    html: `<div class="ev-pin${avail ? "" : " unavail"}${active ? " hovered" : ""}">${icon}</div>`,
+    html: `<div class="${className}">${icon}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size],
   });
@@ -152,7 +158,8 @@ function StationPopupCard({
   }, [userLocation, station.location.coordinates]);
 
   const displayDist = roadDist !== null ? roadDist : station.distanceKm;
-  const avail = station.isOpen && station.availablePorts > 0;
+  const isClosed = !station.isOpen;
+  const avail = !isClosed && station.availablePorts > 0;
   const minPrice = station.pricing?.length
     ? Math.min(...station.pricing.map((p) => p.priceperKWh))
     : 0;
@@ -160,7 +167,9 @@ function StationPopupCard({
   const avgRating = station.reviews?.length
     ? (station.reviews.reduce((a, r) => a + r.rating, 0) / station.reviews.length).toFixed(1)
     : null;
-  const grad = "linear-gradient(135deg,#22c55e,#16a34a)";
+  const grad = isClosed 
+    ? "linear-gradient(135deg,#64748b,#475569)" 
+    : "linear-gradient(135deg,#22c55e,#16a34a)";
 
   return (
     <div
@@ -221,8 +230,8 @@ function StationPopupCard({
           >
             {station.name}
           </p>
-          <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 11, margin: 0 }}>
-            {station.address?.city}
+          <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 11, margin: 0, fontWeight: 600 }}>
+            {station.address?.city} • {station.openingHours || "24/7"}
           </p>
         </div>
         <span
@@ -398,7 +407,7 @@ function StationMarker({
   const [hovering, setHovering] = useState(false);
   const isTouch = useRef(false);
   const active = isTouch.current ? isSelected : hovering || isSelected;
-  const icon = useMemo(() => makeStationIcon(avail, active), [avail, active]);
+  const icon = useMemo(() => makeStationIcon(avail, active, !station.isOpen), [avail, active, station.isOpen]);
 
   useEffect(() => {
     const marker = markerRef.current;

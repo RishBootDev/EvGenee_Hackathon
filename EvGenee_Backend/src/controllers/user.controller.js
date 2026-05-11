@@ -59,6 +59,7 @@ const registerUser = async (req, res, next) => {
         role: user.role,
         vehicle: user.vehicle,
         vehicleNumbers: user.vehicleNumbers ?? [],
+        savedVehicles: user.savedVehicles ?? [],
         createdAt: user.createdAt,
       },
       token,
@@ -111,6 +112,7 @@ const loginUser = async (req, res, next) => {
         role: user.role,
         vehicle: user.vehicle,
         vehicleNumbers: user.vehicleNumbers ?? [],
+        savedVehicles: user.savedVehicles ?? [],
         createdAt: user.createdAt,
       },
       token,
@@ -141,7 +143,7 @@ const getProfile = async (req, res, next) => {
 
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, vehicle, vehicleNumbers } = req.body;
+    const { name, vehicle, vehicleNumbers, savedVehicles } = req.body;
     
     const user = await User.findById(req.user.id);
 
@@ -160,13 +162,27 @@ const updateProfile = async (req, res, next) => {
       user.markModified('vehicleNumbers');
     }
 
-    const updatedUser = await user.save();
+    if (Array.isArray(savedVehicles)) {
+      console.log(`[Profile] Syncing ${savedVehicles.length} vehicles for user ${user._id}`);
+      user.set('savedVehicles', savedVehicles);
+    }
 
-    res.json({
-      success: true,
-      message: 'Profile updated successfully',
-      data: updatedUser,
-    });
+    try {
+      const updatedUser = await user.save();
+      console.log(`[Profile] Successfully persisted ${updatedUser.savedVehicles.length} vehicles to DB.`);
+      
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: updatedUser,
+      });
+    } catch (saveError) {
+      console.error(`[Profile] Save failed:`, saveError.message);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to save profile: ' + saveError.message
+      });
+    }
   } catch (error) {
     next(error);
   }
@@ -200,17 +216,18 @@ const forgotPassword = async (req, res, next) => {
     await user.save();
 
     await sendEmail({
-      to: user.email,
-      subject: "🔐 Your Password Reset OTP - EvGenee",
-      title: "Password Reset Request",
+      to: email,
+      subject: 'Access Code | EvGenee',
+      title: 'Verify Your Identity',
       content: `
-        <p>Hello <b>${user.name}</b>,</p>
-        <p>We received a request to reset your password. Use the code below to proceed. This OTP is valid for <b>10 minutes</b>.</p>
+        <p>Hello,</p>
+        <p>Your security is our priority. Please use the <span class="highlight">Access Code</span> below to complete your sign-in to <span class="highlight">EvGenee</span>.</p>
         <div class="otp-box">
-          <p class="otp-code">${otp}</p>
+          <p style="color: #94a3b8; font-size: 14px; margin-bottom: 10px;">ONE-TIME ACCESS CODE</p>
+          <h3 class="otp-code">${otp}</h3>
         </div>
-        <p>If you did not request this, please ignore this email or contact support if you have concerns.</p>
-        <p>Stay Secure,<br/><b>Team EvGenee</b></p>
+        <p>This code will expire in <span class="highlight">10 minutes</span>. If you did not request this, please secure your account immediately.</p>
+        <p style="margin-top: 30px;">Best regards,<br><span class="highlight">The EvGenee Security Team</span></p>
       `
     });
 

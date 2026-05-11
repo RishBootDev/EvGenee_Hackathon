@@ -47,6 +47,13 @@ export type AuthUser = {
   role: "user" | "StationOwner" | "admin";
   vehicle?: Vehicle;
   vehicleNumbers?: string[];
+  savedVehicles?: {
+    nickname: string;
+    type: string;
+    connectorType: string;
+    batteryCapacity?: number;
+    vehicleNumber?: string;
+  }[];
   createdAt?: string;
 };
 
@@ -115,7 +122,7 @@ export const AuthAPI = {
   }) => api.post("/users/register", d),
   login: (d: { email: string; password: string }) => api.post("/users/login", d),
   profile: () => api.get("/users/profile"),
-  updateProfile: (d: { name?: string; vehicle?: Vehicle; vehicleNumbers?: string[] }) => api.put("/users/profile", d),
+  updateProfile: (d: { name?: string; vehicle?: Vehicle; vehicleNumbers?: string[]; savedVehicles?: any[] }) => api.put("/users/profile", d),
   logout: () => api.post("/users/logout"),
   forgotPassword: (d: { email: string }) => api.post("/users/forgot-password", d),
   verifyOTP: (d: { email: string; otp: string }) => api.post("/users/verify-otp", d),

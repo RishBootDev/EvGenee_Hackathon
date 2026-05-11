@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { BookingsAPI, PaymentAPI, type Booking, type Station } from "@/lib/api";
 import { socket } from "@/lib/socket";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -20,10 +19,8 @@ import {
   MapPin,
   Zap,
   X,
-  KeyRound,
   CheckCircle2,
   Eye,
-  Info,
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChargingStation } from "@fortawesome/free-solid-svg-icons";
@@ -41,16 +38,16 @@ const statusColor: Record<string, string> = {
   "in-progress": "bg-blue-500/15 text-blue-400 border border-blue-500/20",
   completed: "bg-white/8 text-white/40 border border-white/10",
   cancelled: "bg-red-500/15 text-red-400 border border-red-500/20",
-  pending: "bg-white/8 text-white/40 border border-white/10",
+  pending: "bg-amber-500/15 text-amber-400 border border-amber-500/20",
   "no-show": "bg-red-500/15 text-red-400 border border-red-500/20",
 };
 
 const iconColor: Record<string, string> = {
-  confirmed: "from-green-600 to-green-400",
+  confirmed: "from-emerald-600 to-emerald-400",
   "in-progress": "from-blue-600 to-blue-400",
   completed: "from-slate-600 to-slate-400",
   cancelled: "from-red-600 to-red-400",
-  pending: "from-slate-600 to-slate-400",
+  pending: "from-amber-600 to-amber-400",
   "no-show": "from-red-600 to-red-400",
 };
 
@@ -73,22 +70,19 @@ function PendingCountdown({ createdAt }: { createdAt: string }) {
     return () => clearInterval(interval);
   }, [createdAt]);
 
-  const m = Math.floor(timeLeft / 60)
-    .toString()
-    .padStart(2, "0");
+  const m = Math.floor(timeLeft / 60).toString().padStart(2, "0");
   const s = (timeLeft % 60).toString().padStart(2, "0");
 
-  if (timeLeft === 0)
-    return <span className="text-destructive font-bold text-[10px]">Expired</span>;
+  if (timeLeft === 0) return <span className="text-red-400 font-bold text-[10px]">Expired</span>;
   return (
-    <span className="text-destructive font-bold text-[10px] animate-pulse">
-      ⏱ {m}:{s} left
+    <span className="text-amber-400 font-bold text-[10px] animate-pulse flex items-center gap-1">
+      <Clock className="h-2.5 w-2.5" /> {m}:{s} left
     </span>
   );
 }
 
 function BookingsPage() {
-  const { isAuthed, loading: authLoading } = useAuth();
+  const { isAuthed, loading: authLoading, user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("all");
@@ -142,7 +136,7 @@ function BookingsPage() {
   if (authLoading)
     return (
       <div className="h-screen grid place-items-center bg-[#000814]">
-        <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        <div className="h-8 w-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   if (!isAuthed) return <Navigate to="/auth/login" />;
@@ -158,7 +152,7 @@ function BookingsPage() {
     setBusyId(b._id);
     try {
       const r = await BookingsAPI.cancel(b._id, { reason: "User cancelled" });
-      toast.success(`Cancelled — ${r.data?.data?.cancellationPolicy ?? ""}`);
+      toast.success(`Cancelled`);
       load();
     } catch (e) {
       toast.error(getApiError(e, "Cancel failed"));
@@ -169,11 +163,10 @@ function BookingsPage() {
 
   const complete = async (b: Booking) => {
     setBusyId(b._id);
-
     const executeComplete = async () => {
       try {
         await BookingsAPI.complete(b._id);
-        toast.success("Session completed! Remaining 80% paid.");
+        toast.success("Session completed!");
         setBusyId(null);
         load();
       } catch (e) {
@@ -181,62 +174,37 @@ function BookingsPage() {
         setBusyId(null);
       }
     };
-
     const remainingPayment = parseFloat((b.grandTotal * 0.8).toFixed(2));
-
     if (remainingPayment > 0) {
       try {
         const station = typeof b.station === "object" ? (b.station as Station) : null;
-        const pricing =
-          station?.pricing?.find((p) => p.connectorType === b.connectorType) ||
-          station?.pricing?.[0];
+        const pricing = station?.pricing?.find((p) => p.connectorType === b.connectorType) || station?.pricing?.[0];
         const currency = pricing?.currency || "INR";
-
         const orderRes = await PaymentAPI.createOrder({ amount: remainingPayment, currency });
         const order = orderRes.data;
-
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || "",
           amount: order.amount,
           currency: order.currency,
-          name: "EvGenee Charging",
-          description: `Remaining payment for ${station?.name || "Booking"}`,
+          name: "EvGenee",
+          description: `Payment for ${station?.name || "Booking"}`,
           order_id: order.id,
           handler: async function (response: any) {
             try {
-              await PaymentAPI.updatePayment({
-                orderId: order.id,
-                paymentId: response.razorpay_payment_id,
-                status: "paid",
-              });
+              await PaymentAPI.updatePayment({ orderId: order.id, paymentId: response.razorpay_payment_id, status: "paid" });
               await executeComplete();
             } catch (err) {
-              toast.error("Failed to verify payment");
+              toast.error("Payment verification failed");
               setBusyId(null);
             }
           },
-          prefill: {
-            name: typeof b.user === "object" ? b.user.name : "EvGenee User",
-            email: typeof b.user === "object" ? b.user.email : "user@example.com",
-            contact: "9999999999",
-          },
-          theme: { color: "#22c55e" },
-          modal: {
-            ondismiss: function () {
-              toast.error("Payment cancelled. Please pay to complete.");
-              setBusyId(null);
-            },
-          },
+          prefill: { name: user?.name, email: user?.email },
+          theme: { color: "#10b981" },
         };
-
         const rzp = new (window as any).Razorpay(options);
-        rzp.on("payment.failed", function (response: any) {
-          toast.error(`Payment Failed: ${response.error.description}`);
-          setBusyId(null);
-        });
         rzp.open();
       } catch (e) {
-        toast.error(getApiError(e, "Failed to initiate payment"));
+        toast.error("Payment initiation failed");
         setBusyId(null);
       }
     } else {
@@ -246,74 +214,46 @@ function BookingsPage() {
 
   const payAdvance = async (b: Booking) => {
     setBusyId(b._id);
-
     const executeConfirmAdvance = async () => {
       try {
         await BookingsAPI.confirmAdvance(b._id);
-        toast.success("Advance paid! Booking confirmed.");
+        toast.success("Advance paid!");
         setBusyId(null);
         load();
       } catch (e) {
-        toast.error(getApiError(e, "Confirm failed"));
+        toast.error(getApiError(e, "Confirmation failed"));
         setBusyId(null);
       }
     };
-
     const advancePayment = parseFloat((b.grandTotal * 0.2).toFixed(2));
-
     if (advancePayment > 0) {
       try {
         const station = typeof b.station === "object" ? (b.station as Station) : null;
-        const pricing =
-          station?.pricing?.find((p) => p.connectorType === b.connectorType) ||
-          station?.pricing?.[0];
-        const currency = pricing?.currency || "INR";
-
-        const orderRes = await PaymentAPI.createOrder({ amount: advancePayment, currency });
+        const orderRes = await PaymentAPI.createOrder({ amount: advancePayment, currency: "INR" });
         const order = orderRes.data;
-
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || "",
           amount: order.amount,
           currency: order.currency,
-          name: "EvGenee Charging",
-          description: `Advance payment for ${station?.name || "Booking"}`,
+          name: "EvGenee",
+          description: `Advance for ${station?.name || "Booking"}`,
           order_id: order.id,
           handler: async function (response: any) {
             try {
-              await PaymentAPI.updatePayment({
-                orderId: order.id,
-                paymentId: response.razorpay_payment_id,
-                status: "paid",
-              });
+              await PaymentAPI.updatePayment({ orderId: order.id, paymentId: response.razorpay_payment_id, status: "paid" });
               await executeConfirmAdvance();
             } catch (err) {
-              toast.error("Failed to verify payment");
+              toast.error("Verification failed");
               setBusyId(null);
             }
           },
-          prefill: {
-            name: typeof b.user === "object" ? b.user.name : "EvGenee User",
-            email: typeof b.user === "object" ? b.user.email : "user@example.com",
-            contact: "9999999999",
-          },
-          theme: { color: "#22c55e" },
-          modal: {
-            ondismiss: function () {
-              toast.error("Payment cancelled. Please pay to confirm.");
-              setBusyId(null);
-            },
-          },
+          prefill: { name: user?.name, email: user?.email },
+          theme: { color: "#10b981" },
         };
-
         const rzp = new (window as any).Razorpay(options);
-        rzp.on("payment.failed", function (response: any) {
-          toast.error(`Payment Failed: ${response.error.description}`);
-          setBusyId(null);
-        });
         rzp.open();
       } catch (e) {
-        toast.error(getApiError(e, "Failed to initiate payment"));
+        toast.error("Payment failed");
         setBusyId(null);
       }
     } else {
@@ -322,164 +262,157 @@ function BookingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#000814] text-white" style={{ paddingBottom: "5rem" }}>
-      <div
-        className="max-w-2xl mx-auto px-4 pt-8"
-        style={{ paddingTop: "calc(var(--safe-top) + 2rem)" }}
-      >
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-extrabold text-white tracking-tight mb-1">My Bookings</h1>
-          <p className="text-sm text-white/40">Track and manage your charging sessions</p>
-        </div>
+    <div
+      className="min-h-screen bg-[#000814] text-white overflow-x-hidden"
+      style={{ paddingBottom: "6rem", fontFamily: "'DM Sans', sans-serif" }}
+    >
+      {/* Premium Background Image */}
+      <div className="fixed inset-0 z-0">
+        <img
+          src="/hero-bg.png"
+          alt="EV Charging"
+          className="w-full h-full object-cover opacity-20"
+        />
+        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[1px]" />
+      </div>
 
-        {/* Tabs */}
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="w-full grid grid-cols-3 bg-white/5 border border-white/8 rounded-xl p-1 mb-5">
-            <TabsTrigger
-              value="all"
-              className="rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-white text-white/40"
-            >
-              All
-            </TabsTrigger>
-            <TabsTrigger
-              value="active"
-              className="rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-white text-white/40"
-            >
-              Active
-            </TabsTrigger>
-            <TabsTrigger
-              value="history"
-              className="rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-white text-white/40"
-            >
-              History
-            </TabsTrigger>
+      {/* Project Texture */}
+      <div
+        className="fixed inset-0 z-10 pointer-events-none opacity-[0.05]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "repeat",
+          backgroundSize: "128px 128px",
+        }}
+      />
+
+      {/* Project Glows */}
+      <div
+        className="fixed top-0 left-0 w-[600px] h-[500px] pointer-events-none z-10"
+        style={{
+          background: "radial-gradient(ellipse at 0% 0%, rgba(59,130,246,0.1) 0%, transparent 70%)",
+        }}
+      />
+      <div
+        className="fixed bottom-0 right-0 w-[500px] h-[500px] pointer-events-none z-10"
+        style={{
+          background: "radial-gradient(ellipse at 100% 100%, rgba(16,185,129,0.08) 0%, transparent 70%)",
+        }}
+      />
+
+      <div className="relative z-10 max-w-2xl mx-auto px-6 pt-12">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight text-white mb-2" style={{ fontFamily: "'Poppins', sans-serif" }}>
+            My Bookings
+          </h1>
+          <p className="text-white/40 text-sm">Manage your charging fleet and sessions</p>
+        </header>
+
+        <Tabs value={tab} onValueChange={setTab} className="mb-8">
+          <TabsList className="bg-white/5 border border-white/8 rounded-2xl p-1.5 w-full flex">
+            {["all", "active", "history"].map((t) => (
+              <TabsTrigger
+                key={t}
+                value={t}
+                className="flex-1 rounded-xl text-xs font-bold uppercase tracking-widest data-[state=active]:bg-emerald-500 data-[state=active]:text-black text-white/40 transition-all py-3"
+              >
+                {t}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
-          <TabsContent value={tab} className="space-y-3">
+          <TabsContent value={tab} className="space-y-4 mt-6">
             {loading ? (
-              <div className="py-16 grid place-items-center">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <div className="py-20 flex justify-center">
+                <div className="h-8 w-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/8 grid place-items-center mx-auto mb-4">
-                  <Calendar className="h-8 w-8 text-white/20" />
-                </div>
-                <p className="text-white/40 font-medium">No bookings yet</p>
-                <p className="text-white/20 text-sm mt-1">
-                  Your charging sessions will appear here
-                </p>
+              <div className="text-center py-20 border-2 border-dashed border-white/5 rounded-[2rem]">
+                <Calendar className="h-10 w-10 text-white/5 mx-auto mb-3" />
+                <p className="text-white/20 text-sm font-bold uppercase tracking-widest">No sessions found</p>
               </div>
             ) : (
               filtered.map((b) => {
                 const station = typeof b.station === "object" ? (b.station as Station) : null;
                 const isBusy = busyId === b._id;
-                const gradClass = iconColor[b.status] ?? "from-green-600 to-green-400";
+                const grad = iconColor[b.status] ?? "from-emerald-600 to-emerald-400";
                 return (
-                  <div
-                    key={b._id}
-                    className="bg-white/[0.04] border border-white/8 rounded-2xl p-4 space-y-3 hover:bg-white/[0.06] transition-colors"
-                  >
-                    {/* Station info + status */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div
-                          className={`h-12 w-12 rounded-xl bg-gradient-to-br ${gradClass} grid place-items-center shrink-0`}
-                        >
-                          <FontAwesomeIcon
-                            icon={faChargingStation}
-                            className="h-5 w-5 text-white"
-                          />
+                  <div key={b._id} className="bg-white/[0.03] border border-white/5 rounded-3xl p-5 hover:bg-white/[0.05] transition-all group">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${grad} flex items-center justify-center shadow-lg`}>
+                          <FontAwesomeIcon icon={faChargingStation} className="h-6 w-6 text-white" />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-white truncate">
-                            {station?.name ?? "Station"}
-                          </p>
-                          <p className="text-xs text-white/40 flex items-center gap-1 truncate mt-0.5">
-                            <MapPin className="h-3 w-3 shrink-0" />
-                            {station?.address?.city ?? ""}
+                        <div>
+                          <h3 className="font-bold text-white text-base leading-none mb-1.5">{station?.name ?? "Charging Station"}</h3>
+                          <p className="text-xs text-white/30 flex items-center gap-1.5">
+                            <MapPin className="h-3 w-3" /> {station?.address?.city ?? "Location"}
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span
-                          className={`text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wide shrink-0 ${statusColor[b.status]}`}
-                        >
+                      <div className="text-right flex flex-col items-end gap-1.5">
+                        <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${statusColor[b.status]}`}>
                           {b.status}
                         </span>
-                        {b.status === "pending" && b.createdAt && (
-                          <PendingCountdown createdAt={b.createdAt} />
-                        )}
+                        {b.status === "pending" && b.createdAt && <PendingCountdown createdAt={b.createdAt} />}
                       </div>
                     </div>
 
-                    {/* Date/time row */}
-                    <div className="flex items-center justify-between text-xs bg-white/[0.04] border border-white/6 rounded-xl px-3 py-2.5 text-white/50">
-                      <span className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {format(new Date(b.date), "MMM d, yyyy")}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5" />
-                        {b.startTime} – {b.endTime}
-                      </span>
+                    <div className="mt-6 grid grid-cols-2 gap-3">
+                      <div className="bg-white/5 rounded-2xl p-3 border border-white/5 flex items-center gap-3">
+                        <Calendar className="h-4 w-4 text-emerald-400/60" />
+                        <div>
+                          <p className="text-[8px] text-white/30 font-bold uppercase tracking-tighter">Date</p>
+                          <p className="text-xs font-bold text-white/80">{format(new Date(b.date), "MMM d, yyyy")}</p>
+                        </div>
+                      </div>
+                      <div className="bg-white/5 rounded-2xl p-3 border border-white/5 flex items-center gap-3">
+                        <Clock className="h-4 w-4 text-blue-400/60" />
+                        <div>
+                          <p className="text-[8px] text-white/30 font-bold uppercase tracking-tighter">Time Slot</p>
+                          <p className="text-xs font-bold text-white/80">{b.startTime} – {b.endTime}</p>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Price + actions */}
-                    <div className="flex items-center justify-between">
+                    <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-5">
                       <div>
-                        <p className="text-xs text-white/30 mb-1">
-                          {b.connectorType} · {b.estimatedKWh} kWh
-                        </p>
-                        <p className="text-xl font-extrabold text-white">
-                          {formatCurrency(b.grandTotal)}
-                        </p>
+                        <p className="text-[10px] text-white/20 font-bold uppercase tracking-widest mb-1">{b.connectorType} · {b.estimatedKWh} kWh</p>
+                        <p className="text-xl font-black text-white">{formatCurrency(b.grandTotal)}</p>
                       </div>
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
+                        <button
                           onClick={() => showDetails(b._id)}
-                          disabled={loadingDetail}
-                          className="bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 rounded-xl text-xs"
+                          className="h-10 px-4 rounded-xl bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10 transition-colors"
                         >
-                          <Eye className="h-3.5 w-3.5 mr-1" />
                           Details
-                        </Button>
+                        </button>
                         {b.status === "confirmed" && (
-                          <>
-                            <Button
-                              size="sm"
-                              onClick={() => cancel(b)}
-                              disabled={isBusy}
-                              className="bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 rounded-xl text-xs"
-                            >
-                              <X className="h-3.5 w-3.5 mr-1" />
-                              Cancel
-                            </Button>
-                          </>
+                          <button
+                            onClick={() => cancel(b)}
+                            disabled={isBusy}
+                            className="h-10 px-4 rounded-xl bg-red-500/10 border border-red-500/10 text-red-400 text-xs font-bold hover:bg-red-500/20"
+                          >
+                            Cancel
+                          </button>
                         )}
                         {b.status === "in-progress" && (
-                          <Button
-                            size="sm"
+                          <button
                             onClick={() => complete(b)}
                             disabled={isBusy}
-                            className="bg-gradient-to-r from-green-600 to-green-400 text-white rounded-xl text-xs font-bold"
+                            className="h-10 px-5 rounded-xl bg-emerald-500 text-black text-xs font-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
                           >
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                            Pay Balance & Complete
-                          </Button>
+                            Pay & Complete
+                          </button>
                         )}
                         {b.status === "pending" && (
-                          <Button
-                            size="sm"
+                          <button
                             onClick={() => payAdvance(b)}
                             disabled={isBusy}
-                            className="bg-gradient-to-r from-red-600 to-red-400 text-white rounded-xl text-xs font-bold"
+                            className="h-10 px-5 rounded-xl bg-amber-500 text-black text-xs font-black shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
                           >
-                            <Zap className="h-3.5 w-3.5 mr-1" />
-                            Pay 20% Advance
-                          </Button>
+                            Pay Advance
+                          </button>
                         )}
                       </div>
                     </div>
@@ -491,96 +424,65 @@ function BookingsPage() {
         </Tabs>
       </div>
 
-      {/* Booking Detail Modal */}
       <Dialog open={!!selectedBooking} onOpenChange={(o) => !o && setSelectedBooking(null)}>
-        <DialogContent className="max-w-md rounded-2xl bg-[#0a1628] border border-white/10 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-white">Booking Details</DialogTitle>
+        <DialogContent className="max-w-md rounded-[2rem] bg-[#000814] border border-white/10 text-white p-8">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-2xl font-bold tracking-tight text-white" style={{ fontFamily: "'Poppins', sans-serif" }}>
+              Booking Summary
+            </DialogTitle>
           </DialogHeader>
           {selectedBooking && (
-            <div className="space-y-4 py-2">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`h-12 w-12 rounded-xl bg-gradient-to-br ${iconColor[selectedBooking.status] ?? "from-green-600 to-green-400"} grid place-items-center shrink-0`}
-                >
-                  <FontAwesomeIcon icon={faChargingStation} className="h-6 w-6 text-white" />
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${iconColor[selectedBooking.status] ?? "from-emerald-600 to-emerald-400"} flex items-center justify-center`}>
+                  <FontAwesomeIcon icon={faChargingStation} className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <p className="font-bold text-white">
-                    {(selectedBooking.station as Station)?.name}
-                  </p>
-                  <p className="text-sm text-white/40">
-                    {(selectedBooking.station as Station)?.address?.city},{" "}
-                    {(selectedBooking.station as Station)?.address?.street}
-                  </p>
+                  <h3 className="font-bold text-lg text-white">{(selectedBooking.station as Station)?.name}</h3>
+                  <p className="text-sm text-white/40">{(selectedBooking.station as Station)?.address?.city}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 bg-white/5 p-3 rounded-xl border border-white/8">
-                <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-white/30">Status</p>
-                  <span
-                    className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${statusColor[selectedBooking.status]}`}
-                  >
-                    {selectedBooking.status}
-                  </span>
-                </div>
-                <div className="space-y-0.5 text-right">
-                  <p className="text-[10px] uppercase font-bold text-white/30">Connector</p>
-                  <p className="font-bold text-sm text-white">{selectedBooking.connectorType}</p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-white/30">Date</p>
-                  <p className="font-bold text-sm text-white">
-                    {format(new Date(selectedBooking.date), "MMM d, yyyy")}
-                  </p>
-                </div>
-                <div className="space-y-0.5 text-right">
-                  <p className="text-[10px] uppercase font-bold text-white/30">Time</p>
-                  <p className="font-bold text-sm text-white">
-                    {selectedBooking.startTime} – {selectedBooking.endTime}
-                  </p>
-                </div>
+              <div className="grid grid-cols-2 gap-4 bg-white/5 p-5 rounded-2xl border border-white/5">
+                {[
+                  { l: "Status", v: selectedBooking.status, s: statusColor[selectedBooking.status] },
+                  { l: "Connector", v: selectedBooking.connectorType },
+                  { l: "Date", v: format(new Date(selectedBooking.date), "MMM d, yyyy") },
+                  { l: "Time", v: `${selectedBooking.startTime} - ${selectedBooking.endTime}` },
+                ].map((item, i) => (
+                  <div key={i} className="space-y-1">
+                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">{item.l}</p>
+                    {item.s ? (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.s}`}>{item.v}</span>
+                    ) : (
+                      <p className="font-bold text-sm text-white/80">{item.v}</p>
+                    )}
+                  </div>
+                ))}
               </div>
 
-              <div className="space-y-2">
-                <p className="text-xs font-bold text-white/30 uppercase px-1">Cost Breakdown</p>
-                <div className="bg-white/5 border border-white/8 rounded-xl p-3 space-y-1.5">
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Payment Detail</p>
+                <div className="bg-white/5 border border-white/5 rounded-2xl p-5 space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-white/40">
-                      Charging ({selectedBooking.estimatedKWh} kWh)
-                    </span>
-                    <span className="text-white">{formatCurrency(selectedBooking.totalCost)}</span>
+                    <span className="text-white/40">Base Charging</span>
+                    <span className="text-white font-medium">{formatCurrency(selectedBooking.totalCost)}</span>
                   </div>
-                  <div className="pt-1.5 border-t border-white/10 flex justify-between font-bold">
+                  <div className="flex justify-between text-sm font-bold border-t border-white/10 pt-3">
                     <span className="text-white">Grand Total</span>
-                    <span className="text-primary">
-                      {formatCurrency(selectedBooking.grandTotal)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs pt-1">
-                    <span className="text-white/40">Advance Paid (20%)</span>
-                    <span className="text-success">
-                      {formatCurrency(selectedBooking.grandTotal * 0.2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-white/40">Balance Due (80%)</span>
-                    <span className="text-destructive">
-                      {formatCurrency(selectedBooking.grandTotal * 0.8)}
-                    </span>
+                    <span className="text-emerald-400">{formatCurrency(selectedBooking.grandTotal)}</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button
-              className="w-full bg-gradient-to-r from-green-600 to-green-400 text-white rounded-xl font-bold"
+          <DialogFooter className="mt-8">
+            <button
+              className="w-full h-12 bg-white/5 border border-white/10 text-white rounded-full font-bold hover:bg-white/10 transition-colors"
               onClick={() => setSelectedBooking(null)}
             >
               Close
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

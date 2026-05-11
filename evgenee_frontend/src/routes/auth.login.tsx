@@ -43,84 +43,118 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#000814] flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-sm">
+    <div
+      className="min-h-screen bg-[#000814] flex flex-col items-center justify-center p-6 overflow-hidden relative"
+      style={{ fontFamily: "'DM Sans', sans-serif" }}
+    >
+      {/* Premium Background Image */}
+      <div className="fixed inset-0 z-0">
+        <img
+          src="/hero-bg.png"
+          alt="EV Charging"
+          className="w-full h-full object-cover opacity-40"
+        />
+        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px]" />
+      </div>
+
+      {/* Project Texture */}
+      <div
+        className="fixed inset-0 z-10 pointer-events-none opacity-[0.05]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "repeat",
+          backgroundSize: "128px 128px",
+        }}
+      />
+
+      {/* Project Glows */}
+      <div
+        className="fixed top-0 left-0 w-[600px] h-[500px] pointer-events-none z-10"
+        style={{
+          background: "radial-gradient(ellipse at 0% 0%, rgba(59,130,246,0.15) 0%, transparent 70%)",
+        }}
+      />
+      <div
+        className="fixed bottom-0 right-0 w-[500px] h-[500px] pointer-events-none z-10"
+        style={{
+          background: "radial-gradient(ellipse at 100% 100%, rgba(16,185,129,0.1) 0%, transparent 70%)",
+        }}
+      />
+
+      <div className="w-full max-w-sm relative z-10">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex h-14 w-14 rounded-2xl bg-gradient-to-br from-green-600 to-green-400 items-center justify-center mb-4">
-            <FontAwesomeIcon icon={faChargingStation} className="h-7 w-7 text-white" />
+        <div className="text-center mb-10">
+          <div className="inline-flex h-16 w-16 rounded-2xl bg-gradient-to-br from-green-600 to-green-400 items-center justify-center mb-5 shadow-lg shadow-green-500/20">
+            <FontAwesomeIcon icon={faChargingStation} className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight mb-1">EvGenee</h1>
-          <p className="text-white/40 text-sm">Sign in to find chargers near you</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight mb-2" style={{ fontFamily: "'Poppins', sans-serif" }}>
+            EvGenee
+          </h1>
+          <p className="text-white/40 text-sm">Welcome back. Sign in to your account.</p>
         </div>
 
-        {/* Form */}
+        {/* Form Card */}
         <form
           onSubmit={submit}
-          className="bg-white/[0.04] border border-white/8 rounded-3xl p-6 space-y-4"
+          className="bg-white/[0.03] backdrop-blur-xl border border-white/8 rounded-[2rem] p-8 space-y-6 shadow-2xl"
         >
-          {/* Email */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-white/40 uppercase tracking-wide">
-              Email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@email.com"
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl focus:border-primary/50"
-            />
-          </div>
-
-          {/* Password */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-white/40 uppercase tracking-wide">
-              Password
-            </Label>
-            <div className="relative">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] ml-1">Email Address</Label>
               <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
+                id="email"
+                type="email"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl focus:border-primary/50 pr-10"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@email.com"
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/20 h-12 rounded-xl focus:ring-green-500/20"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
             </div>
-            <div className="flex justify-end">
-              <Link
-                to="/auth/forgot-password"
-                className="text-xs font-semibold text-green-400 hover:text-green-300 transition-colors"
-              >
-                Forgot Password?
-              </Link>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between ml-1">
+                <Label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em]">Password</Label>
+                <Link
+                  to="/auth/forgot-password"
+                  className="text-[10px] font-bold text-green-400 hover:text-green-300 uppercase tracking-widest transition-colors"
+                >
+                  Forgot?
+                </Link>
+              </div>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/20 h-12 rounded-xl focus:ring-green-500/20 pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Submit */}
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-12 bg-gradient-to-r from-green-600 to-green-400 text-white font-bold rounded-xl text-base hover:opacity-90 transition-opacity"
+            className="w-full h-12 bg-green-500 hover:bg-green-400 text-black font-bold rounded-full text-base transition-all shadow-lg shadow-green-500/20 active:scale-[0.98]"
           >
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Sign In"}
           </Button>
 
-          <p className="text-center text-sm text-white/40">
-            No account?{" "}
-            <Link to="/auth/register" className="text-primary font-semibold hover:underline">
-              Register
+          <p className="text-center text-sm text-white/30">
+            Don't have an account?{" "}
+            <Link to="/auth/register" className="text-white font-bold hover:text-green-400 transition-colors">
+              Create one
             </Link>
           </p>
         </form>

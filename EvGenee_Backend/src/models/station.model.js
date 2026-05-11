@@ -53,7 +53,7 @@ const stationSchema = new mongoose.Schema({
       {
         priceperKWh: { type: Number, required: true },
         connectorType: { type: String, required: true },
-        portCount: { type: Number, required: true, default: 1 },
+        portCount: { type: Number, required: true, default: 1 }, // This represents the "Units" of this specific charger
         currency: {
           type: String,
           enum: ["USD", "EUR", "INR"],

@@ -28,6 +28,15 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    savedVehicles: [
+      {
+        nickname: { type: String, required: true },
+        type: { type: String, enum: ["EV", "Hybrid", "Petrol", "Diesel"] },
+        connectorType: { type: String, enum: ["CCS2", "CHAdeMO", "Type2"] },
+        batteryCapacity: { type: Number },
+        vehicleNumber: { type: String }
+      }
+    ],
     password: {
       type: String,
       select:false,

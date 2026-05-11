@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth";
-import { StationsAPI, type Station } from "@/lib/api";
+import { StationsAPI, type Station, BookingsAPI } from "@/lib/api";
+import { socket } from "@/lib/socket";
 import { StationsMap } from "@/components/StationsMap";
 import { Search, Zap, Loader2, LocateFixed, Plug, X, ChevronRight, MapPin } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -193,6 +194,49 @@ function HomePage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchTick, isAuthed, isOwner]);
+
+  // ── Global Real-time Sync ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isAuthed) return;
+
+    const onAvailabilityUpdate = (data: any) => {
+      setRawStations((prev) => 
+        prev.map((s) => {
+          if (s._id === data.stationId) {
+            // Optionally re-fetch availability details if needed, 
+            // but for simple real-time, we can update availablePorts
+            return { ...s, availablePorts: data.activeBookings !== undefined ? (s.totalPorts - data.activeBookings) : s.availablePorts };
+          }
+          return s;
+        })
+      );
+    };
+
+    const onCapacityChanged = (data: any) => {
+      setRawStations((prev) => 
+        prev.map((s) => {
+          if (s._id === data.stationId) {
+            // Re-fetch the full station data to get exact counts if needed
+            StationsAPI.details(data.stationId).then(r => {
+              const updated = r.data?.data;
+              if (updated) {
+                setRawStations(p => p.map(st => st._id === updated._id ? updated : st));
+              }
+            });
+          }
+          return s;
+        })
+      );
+    };
+
+    socket.on("availability:updated", onAvailabilityUpdate);
+    socket.on("station:capacity_changed", onCapacityChanged);
+
+    return () => {
+      socket.off("availability:updated", onAvailabilityUpdate);
+      socket.off("station:capacity_changed", onCapacityChanged);
+    };
+  }, [isAuthed]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -892,7 +936,7 @@ function MobileCard({
           }}
         >
           <MapPin size={10} style={{ flexShrink: 0 }} /> {station.address?.street},{" "}
-          {station.address?.city}
+          {station.address?.city} • <span className="font-semibold text-white/50">{station.openingHours || "24/7"}</span>
         </p>
         <div
           style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5, flexWrap: "wrap" }}
@@ -909,8 +953,12 @@ function MobileCard({
               fontSize: 11,
               fontWeight: 700,
               color: avail ? "#22c55e" : "rgba(255,255,255,0.3)",
+              display: "flex",
+              alignItems: "center",
+              gap: 4
             }}
           >
+            {avail && <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />}
             {avail ? `${station.availablePorts} free` : station.isOpen ? "Full" : "Closed"}
           </span>
 

@@ -1,3 +1,4 @@
+const { sendEmail } = require('../services/email.service');
 const Booking = require('../models/booking.model');
 const Station = require('../models/station.model');
 const { NODEMAILER_USER, NODEMAILER_PASS, NODEMAILER_PORT, PLATFORM_FEE_PERCENTAGE } = require('../config/config');  
@@ -238,7 +239,9 @@ const createBooking = async (req, res, next) => {
       const nextSlot = await findNextAvailableSlot(stationId, bookingDate, connectorType, startTime, requestedEnd - requestedStart, maxPorts, station.openingHours);
       return res.status(409).json({
         success: false,
-        message: `No available ${connectorType} ports at ${startTime}. All ${maxPorts} ports are booked.`,
+        message: `Fully Booked: All ${maxPorts} ${connectorType} units are occupied at ${startTime}.`,
+        unitsTotal: maxPorts,
+        unitsAvailable: 0,
         nextAvailableSlot: nextSlot,
         suggestion: nextSlot ? `Try booking at ${nextSlot} instead.` : 'Try a different date or station.',
       });
@@ -253,7 +256,9 @@ const createBooking = async (req, res, next) => {
           const nextSlot = await findNextAvailableSlot(stationId, bookingDate, connectorType, startTime, requestedEnd - requestedStart, maxPorts, station.openingHours);
           return res.status(409).json({
             success: false,
-            message: `No available ${connectorType} ports at ${conflictTime}. All ${maxPorts} ports are booked.`,
+            message: `Fully Booked: All ${maxPorts} ${connectorType} units are occupied at ${conflictTime}.`,
+            unitsTotal: maxPorts,
+            unitsAvailable: 0,
             nextAvailableSlot: nextSlot,
             suggestion: nextSlot ? `Try booking at ${nextSlot} instead.` : 'Try a different date or station.',
           });
@@ -432,6 +437,45 @@ const createBooking = async (req, res, next) => {
       });
     }
 
+    // Send Confirmation Email
+    try {
+      const user = await User.findById(userId);
+      if (user) {
+        await sendEmail({
+          to: user.email,
+          subject: 'Booking Confirmed | EvGenee',
+          title: 'Your Charger is Ready',
+          content: `
+            <p>Hello <span class="highlight">${user.name}</span>,</p>
+            <p>Your booking at <span class="highlight">${station.name}</span> has been confirmed. We have reserved a machine specifically for you.</p>
+            <div class="otp-box" style="text-align: left;">
+              <div style="margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px;">
+                <p style="margin: 0; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Station</p>
+                <p style="margin: 5px 0 0 0; font-weight: 700; color: #ffffff; font-size: 16px;">${station.name}</p>
+              </div>
+              <div style="display: flex; gap: 20px;">
+                <div style="flex: 1;">
+                  <p style="margin: 0; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Date</p>
+                  <p style="margin: 5px 0 0 0; font-weight: 700; color: #ffffff; font-size: 16px;">${bookingDate.toLocaleDateString()}</p>
+                </div>
+                <div style="flex: 1;">
+                  <p style="margin: 0; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Time</p>
+                  <p style="margin: 5px 0 0 0; font-weight: 700; color: #ffffff; font-size: 16px;">${startTime} - ${endTime}</p>
+                </div>
+              </div>
+            </div>
+            <p>To start charging, simply arrive at the station and enter your Check-in OTP on the station's terminal or in your app.</p>
+            <div style="text-align: center;">
+              <a href="#" class="btn">View Directions</a>
+            </div>
+            <p style="margin-top: 30px;">See you soon,<br><span class="highlight">The EvGenee Team</span></p>
+          `
+        });
+      }
+    } catch (emailErr) {
+      console.error("Confirmation Email Error ", emailErr);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Booking confirmed successfully',
@@ -560,8 +604,8 @@ const checkAvailability = async (req, res, next) => {
       slots.push({
         startTime: slotStart,
         endTime: slotEnd,
-        availablePorts: Math.max(0, maxPorts - overlapping),
-        totalPorts: maxPorts,
+        availableUnits: Math.max(0, maxPorts - overlapping),
+        totalUnits: maxPorts,
         isAvailable,
       });
     }
@@ -709,12 +753,41 @@ const cancelBooking = async (req, res, next) => {
 
     // Emit WebSocket event for capacity change
     if (io) {
+      io.to(`station_${booking.station}`).emit('availability:updated', {
+        stationId: booking.station,
+        date: booking.date,
+      });
+
       io.emit('station:capacity_changed', {
         stationId: booking.station,
         connectorType: booking.connectorType,
         status: booking.status,
         timestamp: new Date()
       });
+    }
+
+    // Send Cancellation Email
+    try {
+      const user = await User.findById(booking.user);
+      if (user) {
+        await sendEmail({
+          to: user.email,
+          subject: 'Booking Cancelled | EvGenee',
+          title: 'Booking Update',
+          content: `
+            <p>Hello <span class="highlight">${user.name}</span>,</p>
+            <p>Your booking for <span class="highlight">${booking.startTime}</span> has been successfully cancelled as per your request.</p>
+            <div class="otp-box">
+              <p style="margin: 0; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Refund Status</p>
+              <p style="margin: 5px 0 0 0; font-weight: 700; color: #10b981; font-size: 20px;">Processing</p>
+            </div>
+            <p>Your refund of <span class="highlight">${sym}${((booking.grandTotal * refundPercentage) / 100).toFixed(2)}</span> will be credited back to your original payment method within 5-7 business days.</p>
+            <p style="margin-top: 30px;">We hope to see you again soon,<br><span class="highlight">The EvGenee Team</span></p>
+          `
+        });
+      }
+    } catch (emailErr) {
+      console.error("Cancellation Email Error:", emailErr);
     }
 
     res.json({

@@ -20,12 +20,12 @@ import {
   User,
   Zap,
   Car,
-  BatteryCharging,
   Plug,
   CheckCircle2,
-  Pencil,
   Plus,
   X,
+  Settings2,
+  Pencil,
   Hash,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -35,10 +35,13 @@ export const Route = createFileRoute("/profile")({
   component: ProfilePage,
 });
 
-// Helper – basic Indian vehicle number format, e.g. "MH 01 AB 1234"
-function formatVehicleNumber(raw: string) {
-  return raw.toUpperCase().trim();
-}
+type SavedVehicle = {
+  nickname: string;
+  type: string;
+  connectorType: string;
+  batteryCapacity?: number;
+  vehicleNumber?: string;
+};
 
 function ProfilePage() {
   const { user, loading, isAuthed, logout, refresh } = useAuth();
@@ -46,23 +49,26 @@ function ProfilePage() {
 
   const [form, setForm] = useState({
     name: "",
-    vehicleType: "EV",
-    connectorType: "Type2",
-    batteryCapacity: "",
   });
-  const [vehicleNumbers, setVehicleNumbers] = useState<string[]>([]);
-  const [newVehicleNum, setNewVehicleNum] = useState("");
+  
+  const [savedVehicles, setSavedVehicles] = useState<SavedVehicle[]>([]);
+  const [newVehicle, setNewVehicle] = useState<SavedVehicle>({
+    nickname: "",
+    type: "EV",
+    connectorType: "CCS2",
+    batteryCapacity: undefined,
+    vehicleNumber: ""
+  });
+  const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [processingVehicle, setProcessingVehicle] = useState(false);
 
   useEffect(() => {
     if (user) {
       setForm({
         name: user.name ?? "",
-        vehicleType: user.vehicle?.type ?? "EV",
-        connectorType: user.vehicle?.connectorType ?? "Type2",
-        batteryCapacity: user.vehicle?.batteryCapacity?.toString() ?? "",
       });
-      setVehicleNumbers(user.vehicleNumbers ?? []);
+      setSavedVehicles((user as any).savedVehicles ?? []);
     }
   }, [user]);
 
@@ -70,29 +76,59 @@ function ProfilePage() {
     return (
       <div className="h-screen grid place-items-center bg-[#000814]">
         <div className="flex flex-col items-center gap-3">
-          <div className="relative">
-            <div className="h-12 w-12 rounded-full border-2 border-green-500/20 border-t-green-400 animate-spin" />
-            <Zap className="h-5 w-5 text-green-400 absolute inset-0 m-auto" />
-          </div>
-          <p className="text-white/40 text-sm">Loading profile…</p>
+          <div className="h-10 w-10 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     );
   if (!isAuthed || !user) return <Navigate to="/auth/login" />;
 
-  const addVehicleNumber = () => {
-    const val = formatVehicleNumber(newVehicleNum);
-    if (!val) return;
-    if (vehicleNumbers.includes(val)) {
-      toast.error("This vehicle number is already added");
+  const addVehicle = async () => {
+    if (!newVehicle.nickname) {
+      toast.error("Nickname is required");
       return;
     }
-    setVehicleNumbers((prev) => [...prev, val]);
-    setNewVehicleNum("");
+    
+    setProcessingVehicle(true);
+    const updatedFleet = [...savedVehicles, newVehicle];
+    
+    try {
+      await AuthAPI.updateProfile({
+        savedVehicles: updatedFleet as any,
+      });
+      setSavedVehicles(updatedFleet);
+      await refresh();
+      setNewVehicle({
+        nickname: "",
+        type: "EV",
+        connectorType: "CCS2",
+        batteryCapacity: undefined,
+        vehicleNumber: ""
+      });
+      setShowAddForm(false);
+      toast.success("Vehicle registered successfully");
+    } catch (e) {
+      toast.error(getApiError(e, "Failed to register vehicle"));
+    } finally {
+      setProcessingVehicle(false);
+    }
   };
 
-  const removeVehicleNumber = (num: string) => {
-    setVehicleNumbers((prev) => prev.filter((v) => v !== num));
+  const removeVehicle = async (index: number) => {
+    setProcessingVehicle(true);
+    const updatedFleet = savedVehicles.filter((_, i) => i !== index);
+    
+    try {
+      await AuthAPI.updateProfile({
+        savedVehicles: updatedFleet as any,
+      });
+      setSavedVehicles(updatedFleet);
+      await refresh();
+      toast.success("Vehicle removed");
+    } catch (e) {
+      toast.error(getApiError(e, "Failed to remove vehicle"));
+    } finally {
+      setProcessingVehicle(false);
+    }
   };
 
   const save = async () => {
@@ -100,19 +136,12 @@ function ProfilePage() {
     try {
       await AuthAPI.updateProfile({
         name: form.name,
-        vehicle: {
-          type: form.vehicleType as "EV" | "Hybrid" | "Petrol" | "Diesel",
-          connectorType: form.connectorType as "CCS2" | "CHAdeMO" | "Type2",
-          batteryCapacity: form.batteryCapacity
-            ? Number(form.batteryCapacity)
-            : undefined,
-        },
-        vehicleNumbers,
+        savedVehicles: savedVehicles as any,
       });
       await refresh();
-      toast.success("Profile updated successfully");
+      toast.success("Profile saved");
     } catch (e) {
-      toast.error(getApiError(e, "Update failed"));
+      toast.error(getApiError(e, "Failed to save"));
     } finally {
       setSaving(false);
     }
@@ -135,19 +164,27 @@ function ProfilePage() {
       className="min-h-screen bg-[#000814] text-white overflow-x-hidden"
       style={{ paddingBottom: "5.5rem", fontFamily: "'DM Sans', sans-serif" }}
     >
+      {/* Premium Background Image */}
+      <div className="fixed inset-0 z-0">
+        <img
+          src="/hero-bg.png"
+          alt="EV Charging"
+          className="w-full h-full object-cover opacity-20"
+        />
+        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[1px]" />
+      </div>
+
       {/* Background glows */}
       <div
-        className="fixed top-0 left-0 w-[600px] h-[400px] pointer-events-none z-0"
+        className="fixed top-0 left-0 w-[600px] h-[400px] pointer-events-none z-10"
         style={{
-          background:
-            "radial-gradient(ellipse at 0% 0%, rgba(16,185,129,0.08) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse at 0% 0%, rgba(16,185,129,0.1) 0%, transparent 70%)",
         }}
       />
       <div
-        className="fixed bottom-0 right-0 w-[500px] h-[400px] pointer-events-none z-0"
+        className="fixed bottom-0 right-0 w-[500px] h-[400px] pointer-events-none z-10"
         style={{
-          background:
-            "radial-gradient(ellipse at 100% 100%, rgba(59,130,246,0.06) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse at 100% 100%, rgba(59,130,246,0.08) 0%, transparent 70%)",
         }}
       />
 
@@ -155,12 +192,11 @@ function ProfilePage() {
         className="relative z-10 max-w-lg mx-auto px-4"
         style={{ paddingTop: "calc(var(--safe-top, 0px) + 1.5rem)" }}
       >
-        {/* ── Hero Header ─────────────────────────────────────────── */}
+        {/* ── Hero Header - RESTORED ORIGINAL ─────────────────────────── */}
         <div className="relative rounded-3xl overflow-hidden mb-5">
           <div
             style={{
-              background:
-                "linear-gradient(135deg, #064e3b 0%, #065f46 40%, #047857 70%, #10b981 100%)",
+              background: "linear-gradient(135deg, #064e3b 0%, #065f46 40%, #047857 70%, #10b981 100%)",
             }}
             className="absolute inset-0"
           />
@@ -171,8 +207,7 @@ function ProfilePage() {
           <div
             className="absolute inset-0 opacity-[0.04]"
             style={{
-              backgroundImage:
-                "repeating-linear-gradient(0deg, white 0px, white 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, white 0px, white 1px, transparent 1px, transparent 40px)",
+              backgroundImage: "repeating-linear-gradient(0deg, white 0px, white 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, white 0px, white 1px, transparent 1px, transparent 40px)",
             }}
           />
 
@@ -188,10 +223,7 @@ function ProfilePage() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <h1
-                  className="text-xl font-extrabold text-white leading-tight truncate"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
+                <h1 className="text-xl font-extrabold text-white leading-tight truncate" style={{ fontFamily: "'Poppins', sans-serif" }}>
                   {user.name}
                 </h1>
                 <p className="text-white/65 text-xs flex items-center gap-1.5 mt-0.5 truncate">
@@ -202,335 +234,180 @@ function ProfilePage() {
                   <span className="inline-flex items-center gap-1 bg-white/15 backdrop-blur-sm rounded-full px-2.5 py-0.5 border border-white/20">
                     <Shield className="h-3 w-3 text-green-200" />
                     <span className="text-[11px] font-semibold text-white/90 capitalize">
-                      {user.role ?? "User"}
+                      {user.role}
                     </span>
                   </span>
                   <span className="inline-flex items-center gap-1 bg-green-400/20 rounded-full px-2.5 py-0.5 border border-green-300/20">
                     <CheckCircle2 className="h-3 w-3 text-green-300" />
-                    <span className="text-[11px] font-semibold text-green-200">
-                      Verified
-                    </span>
+                    <span className="text-[11px] font-semibold text-green-200">Verified</span>
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Stats strip */}
+            {/* Stats strip - Restored original style with Fleet info */}
             <div className="grid grid-cols-3 gap-2">
               {[
-                { label: "Vehicle", value: form.vehicleType || "—", icon: Car },
+                { label: "Fleet Size", value: savedVehicles.length.toString(), icon: Car },
                 {
-                  label: "Connector",
-                  value: form.connectorType || "—",
+                  label: "Connectors",
+                  value: Array.from(new Set(savedVehicles.map(v => v.connectorType))).join(', ') || "—",
                   icon: Plug,
                 },
-                {
-                  label: "Battery",
-                  value: form.batteryCapacity
-                    ? `${form.batteryCapacity} kWh`
-                    : "—",
-                  icon: BatteryCharging,
-                },
+                { label: "Status", value: "Active", icon: Zap },
               ].map(({ label, value, icon: Icon }) => (
-                <div
-                  key={label}
-                  className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 border border-white/10 text-center"
-                >
+                <div key={label} className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 border border-white/10 text-center">
                   <Icon className="h-3.5 w-3.5 text-green-200 mx-auto mb-1" />
-                  <p className="text-white font-bold text-xs leading-none mb-0.5">
-                    {value}
-                  </p>
-                  <p className="text-white/50 text-[10px]">{label}</p>
+                  <p className="text-white font-bold text-[10px] leading-tight mb-0.5 truncate px-1">{value}</p>
+                  <p className="text-white/50 text-[9px] uppercase tracking-tighter">{label}</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* ── Account Section ──────────────────────────────────────── */}
-        <div
-          className="rounded-2xl p-5 mb-3 border"
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)",
-            borderColor: "rgba(255,255,255,0.07)",
-            backdropFilter: "blur(10px)",
-          }}
-        >
+        {/* ── Fleet Management ────────────────────────────────────────── */}
+        <div className="rounded-2xl p-5 mb-3 border border-white/10 bg-white/[0.04] backdrop-blur-md">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-lg bg-blue-500/15 border border-blue-500/20 flex items-center justify-center">
+                <Car className="h-3.5 w-3.5 text-blue-400" />
+              </div>
+              <span className="text-sm font-bold text-white">My Fleet</span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="h-8 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/10"
+            >
+              {showAddForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {showAddForm ? "Cancel" : "Add Car"}
+            </Button>
+          </div>
+
+          {showAddForm && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-white/40 uppercase">Nickname</Label>
+                  <Input
+                    placeholder="e.g. My Nexon"
+                    value={newVehicle.nickname}
+                    onChange={(e) => setNewVehicle({ ...newVehicle, nickname: e.target.value })}
+                    className="bg-black/20 border-white/10 h-10 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-white/40 uppercase">Reg. Number</Label>
+                  <Input
+                    placeholder="MH 01..."
+                    value={newVehicle.vehicleNumber}
+                    onChange={(e) => setNewVehicle({ ...newVehicle, vehicleNumber: e.target.value.toUpperCase() })}
+                    className="bg-black/20 border-white/10 h-10 text-sm font-mono"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-white/40 uppercase">Type</Label>
+                  <Select value={newVehicle.type} onValueChange={(v) => setNewVehicle({ ...newVehicle, type: v })}>
+                    <SelectTrigger className="bg-black/20 border-white/10 h-10 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#000814] text-white border-white/10">
+                      {["EV", "Hybrid", "Petrol", "Diesel"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-white/40 uppercase">Connector</Label>
+                  <Select value={newVehicle.connectorType} onValueChange={(v) => setNewVehicle({ ...newVehicle, connectorType: v })}>
+                    <SelectTrigger className="bg-black/20 border-white/10 h-10 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#000814] text-white border-white/10">
+                      {["CCS2", "CHAdeMO", "Type2"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button 
+                onClick={addVehicle} 
+                disabled={processingVehicle}
+                className="w-full h-10 bg-blue-600 hover:bg-blue-700 font-bold rounded-xl"
+              >
+                {processingVehicle ? <Loader2 className="h-4 w-4 animate-spin" /> : "Register Car"}
+              </Button>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {savedVehicles.map((v, i) => (
+              <div key={i} className="flex items-center gap-3 bg-blue-500/10 border border-blue-500/10 rounded-xl p-3 group">
+                <Car className="h-4 w-4 text-blue-400" />
+                <div className="flex-1">
+                  <p className="text-xs font-bold text-white leading-none">{v.nickname}</p>
+                  <p className="text-[9px] text-blue-300/60 mt-1 uppercase tracking-tight">{v.type} · {v.connectorType} · {v.vehicleNumber || 'N/A'}</p>
+                </div>
+                <button 
+                  disabled={processingVehicle}
+                  onClick={() => removeVehicle(i)} 
+                  className="text-white/20 hover:text-red-400 transition-colors disabled:opacity-30"
+                >
+                  {processingVehicle ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+            ))}
+            {savedVehicles.length === 0 && !showAddForm && <p className="text-center py-4 text-xs text-white/20">Fleet is currently empty</p>}
+          </div>
+        </div>
+
+        {/* ── Account Section ───────────────────────────────────────── */}
+        <div className="rounded-2xl p-5 mb-3 border border-white/10 bg-white/[0.04] backdrop-blur-md">
           <div className="flex items-center gap-2 mb-4">
             <div className="h-7 w-7 rounded-lg bg-green-500/15 border border-green-500/20 flex items-center justify-center">
               <User className="h-3.5 w-3.5 text-green-400" />
             </div>
-            <span className="text-sm font-bold text-white">Account</span>
+            <span className="text-sm font-bold text-white">Profile Settings</span>
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest">
-              Full Name
-            </Label>
-            <div className="relative">
-              <Input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="bg-white/[0.05] border-white/10 text-white placeholder:text-white/20 rounded-xl focus:border-green-500/50 focus:ring-green-500/10 pr-10 h-11"
-              />
-              <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20 pointer-events-none" />
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest">Full Name</Label>
+              <div className="relative">
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="bg-white/[0.05] border-white/10 text-white rounded-xl h-11 pr-10"
+                />
+                <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20" />
+              </div>
             </div>
-          </div>
-
-          <div className="mt-3 space-y-1.5">
-            <Label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest">
-              Email Address
-            </Label>
-            <div className="relative">
-              <Input
-                value={user.email}
-                disabled
-                className="bg-white/[0.03] border-white/5 text-white/40 rounded-xl h-11 cursor-not-allowed"
-              />
-              <Shield className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/15 pointer-events-none" />
-            </div>
-            <p className="text-[10px] text-white/25 pl-1">
-              Email cannot be changed
-            </p>
           </div>
         </div>
 
-        {/* ── Vehicle Spec Section ─────────────────────────────────── */}
-        {user.role === "user" && (
-          <div
-            className="rounded-2xl p-5 mb-3 border"
+        {/* ── Actions ─────────────────────────────────────────────── */}
+        <div className="space-y-3">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="w-full h-12 rounded-2xl font-bold text-sm text-white mb-1 transition-all active:scale-[0.98] disabled:opacity-70"
             style={{
-              background:
-                "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)",
-              borderColor: "rgba(255,255,255,0.07)",
-              backdropFilter: "blur(10px)",
+              background: "linear-gradient(90deg, #059669 0%, #10b981 100%)",
+              boxShadow: "0 0 20px rgba(16,185,129,0.2)",
             }}
           >
-            <div className="flex items-center gap-2 mb-4">
-              <div className="h-7 w-7 rounded-lg bg-blue-500/15 border border-blue-500/20 flex items-center justify-center">
-                <Car className="h-3.5 w-3.5 text-blue-400" />
-              </div>
-              <span className="text-sm font-bold text-white">Vehicle</span>
-            </div>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Save Changes"}
+          </button>
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest">
-                  Type
-                </Label>
-                <Select
-                  value={form.vehicleType}
-                  onValueChange={(v) => setForm({ ...form, vehicleType: v })}
-                >
-                  <SelectTrigger className="bg-white/[0.05] border-white/10 text-white rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#0a1628] border-white/10 text-white rounded-xl">
-                    {["EV", "Hybrid", "Petrol", "Diesel"].map((v) => (
-                      <SelectItem
-                        key={v}
-                        value={v}
-                        className="text-white hover:bg-white/10 focus:bg-white/10 rounded-lg"
-                      >
-                        {v}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest">
-                  Connector
-                </Label>
-                <Select
-                  value={form.connectorType}
-                  onValueChange={(v) => setForm({ ...form, connectorType: v })}
-                >
-                  <SelectTrigger className="bg-white/[0.05] border-white/10 text-white rounded-xl h-11 focus:border-blue-500/50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#0a1628] border-white/10 text-white rounded-xl">
-                    {["CCS2", "CHAdeMO", "Type2"].map((v) => (
-                      <SelectItem
-                        key={v}
-                        value={v}
-                        className="text-white hover:bg-white/10 focus:bg-white/10 rounded-lg"
-                      >
-                        {v}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest flex items-center gap-1.5">
-                <BatteryCharging className="h-3 w-3" />
-                Battery Capacity (kWh)
-              </Label>
-              <Input
-                type="number"
-                value={form.batteryCapacity}
-                onChange={(e) =>
-                  setForm({ ...form, batteryCapacity: e.target.value })
-                }
-                className="bg-white/[0.05] border-white/10 text-white placeholder:text-white/20 rounded-xl h-11 focus:border-blue-500/50 focus:ring-blue-500/10"
-                placeholder="e.g. 75"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* ── Vehicle Numbers Section (users only) ─────────────────── */}
-        {user.role === "user" && (
-          <div
-            className="rounded-2xl p-5 mb-4 border"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)",
-              borderColor: "rgba(255,255,255,0.07)",
-              backdropFilter: "blur(10px)",
-            }}
+          <button
+            onClick={handleLogout}
+            className="w-full h-12 rounded-2xl font-semibold text-sm text-red-400 border border-red-500/10 hover:bg-red-500/10 transition-colors"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-lg bg-purple-500/15 border border-purple-500/20 flex items-center justify-center">
-                  <Hash className="h-3.5 w-3.5 text-purple-400" />
-                </div>
-                <div>
-                  <span className="text-sm font-bold text-white">My Vehicles</span>
-                  <span className="ml-2 text-[10px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded-full border border-white/8">
-                    {vehicleNumbers.length} registered
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {vehicleNumbers.length > 0 ? (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {vehicleNumbers.map((num) => (
-                  <div
-                    key={num}
-                    className="group flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 rounded-xl px-3 py-1.5 transition-all hover:bg-purple-500/15"
-                  >
-                    <Car className="h-3 w-3 text-purple-400 shrink-0" />
-                    <span className="text-sm font-bold text-purple-200 tracking-wider font-mono">
-                      {num}
-                    </span>
-                    <button
-                      onClick={() => removeVehicleNumber(num)}
-                      className="ml-1 h-4 w-4 rounded-full bg-white/10 hover:bg-red-500/30 flex items-center justify-center transition-colors"
-                      aria-label={`Remove ${num}`}
-                    >
-                      <X className="h-2.5 w-2.5 text-white/60 hover:text-red-300" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-5 mb-4">
-                <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center mx-auto mb-2">
-                  <Car className="h-5 w-5 text-white/20" />
-                </div>
-                <p className="text-white/30 text-xs">No vehicles registered yet</p>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  value={newVehicleNum}
-                  onChange={(e) => setNewVehicleNum(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addVehicleNumber();
-                    }
-                  }}
-                  placeholder="e.g. MH 01 AB 1234"
-                  className="bg-white/[0.05] border-white/10 text-white placeholder:text-white/20 rounded-xl h-11 focus:border-purple-500/50 focus:ring-purple-500/10 pr-3 font-mono uppercase"
-                />
-              </div>
-              <button
-                onClick={addVehicleNumber}
-                disabled={!newVehicleNum.trim()}
-                className="h-11 px-4 rounded-xl font-semibold text-sm flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)",
-                  boxShadow: newVehicleNum.trim()
-                    ? "0 0 16px rgba(124,58,237,0.3)"
-                    : "none",
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                Add
-              </button>
-            </div>
-            <p className="text-[10px] text-white/25 mt-2 pl-1">
-              Press Enter or tap Add · Vehicle number will be auto-uppercased
-            </p>
-          </div>
-        )}
-
-        {/* ── Save Button ──────────────────────────────────────────── */}
-        <button
-          onClick={save}
-          disabled={saving}
-          className="w-full rounded-2xl font-bold text-sm text-white mb-3 relative overflow-hidden transition-all duration-200 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-          style={{
-            background: saving
-              ? "linear-gradient(90deg, #065f46, #047857)"
-              : "linear-gradient(90deg, #059669 0%, #10b981 50%, #34d399 100%)",
-            boxShadow: saving
-              ? "none"
-              : "0 0 24px rgba(16,185,129,0.35), 0 4px 12px rgba(0,0,0,0.3)",
-            height: "48px",
-          }}
-        >
-          {!saving && (
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%)",
-              }}
-            />
-          )}
-          <span className="relative z-10 flex items-center justify-center gap-2">
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving…
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-4 w-4" />
-                Save Changes
-              </>
-            )}
-          </span>
-        </button>
-
-        {/* ── Sign Out ─────────────────────────────────────────────── */}
-        <button
-          onClick={handleLogout}
-          className="w-full h-12 rounded-2xl font-semibold text-sm text-red-400 border flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:bg-red-500/10 group"
-          style={{
-            borderColor: "rgba(239,68,68,0.2)",
-            background: "rgba(239,68,68,0.05)",
-          }}
-        >
-          <LogOut className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-          Sign out
-        </button>
-
-        <p className="text-center text-white/15 text-[10px] mt-5 tracking-widest uppercase">
-          EvGenee · v1.0
-        </p>
+            <LogOut className="h-4 w-4 inline mr-2" /> Sign out
+          </button>
+        </div>
       </div>
     </div>
   );
