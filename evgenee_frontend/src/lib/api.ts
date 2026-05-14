@@ -83,6 +83,12 @@ export type Station = {
   status: "active" | "inactive";
   operator: string;
   Images: string[];
+  mechanic?: {
+    name: string;
+    phone: string;
+    rating: number;
+    speciality: string;
+  };
   reviews: { userId: string; comment: string; rating: number }[];
   distance?: number;
   distanceKm?: number;
@@ -185,4 +191,51 @@ export const PaymentAPI = {
 // ===== AI Voice Assistant =====
 export const AIAPI = {
   chat: (d: { message: string; threadId?: string }) => api.post("/ai/chat", d),
+};
+
+// ===== Roadside SOS =====
+export type MechanicInfo = {
+  name: string;
+  phone: string;
+  garage: string;
+  estimatedArrival: string;
+  distance: string;
+  rating: number;
+  speciality: string;
+};
+
+export type SosRequest = {
+  requestId: string;
+  status: "pending" | "mechanic_assigned" | "tow_dispatched" | "en_route" | "resolved" | "cancelled";
+  issueType: string;
+  issueLabel: string;
+  towRequested: boolean;
+  address: string;
+  description?: string;
+  mechanic?: MechanicInfo;
+  createdAt: string;
+  resolvedAt?: string;
+  cancelledAt?: string;
+};
+
+export type IssueType = { value: string; label: string };
+
+export const RoadsideAPI = {
+  getIssueTypes: () => api.get<{ success: boolean; data: IssueType[] }>("/roadside/issue-types"),
+  getNearestMechanic: (params: { lat: number; lng: number }) =>
+    api.get<{ success: boolean; data: MechanicInfo & { city: string } }>("/roadside/nearest-mechanic", { params }),
+  createSos: (d: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+    issueType: string;
+    description?: string;
+    requestTow?: boolean;
+  }) => api.post<{ success: boolean; message: string; data: SosRequest }>("/roadside/sos", d),
+  getStatus: (requestId: string) =>
+    api.get<{ success: boolean; data: SosRequest }>(`/roadside/sos/${requestId}`),
+  myRequests: () =>
+    api.get<{ success: boolean; data: SosRequest[] }>("/roadside/my-requests"),
+  cancel: (requestId: string) =>
+    api.patch<{ success: boolean; message: string }>(`/roadside/sos/${requestId}/cancel`),
 };

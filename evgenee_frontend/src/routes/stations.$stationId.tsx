@@ -30,6 +30,7 @@ import {
   Clock,
   Car,
   Hash,
+  Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatCurrency, getApiError } from "@/lib/utils";
@@ -596,6 +597,38 @@ function StationDetail() {
             sub={`${station.reviews?.length ?? 0} reviews`}
           />
         </div>
+
+        {/* Station Mechanic */}
+        {station.mechanic && station.mechanic.name && (
+          <div className="bg-card border border-border rounded-2xl p-4 shadow-[var(--shadow-card)] flex flex-col space-y-3 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+              <Wrench className="h-20 w-20" />
+            </div>
+            <div className="flex items-center gap-3 relative z-10">
+              <div className="h-10 w-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                <Wrench className="h-5 w-5 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Station Support</p>
+                <p className="font-bold text-sm">{station.name}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs text-muted-foreground">{station.mechanic.speciality}</span>
+                  {station.mechanic.rating && (
+                    <span className="flex items-center gap-0.5 text-xs font-bold text-amber-500">
+                      <Star className="h-3 w-3 fill-amber-500" /> {station.mechanic.rating}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <a 
+              href={`tel:${station.mechanic.phone}`}
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 rounded-xl font-bold text-sm transition-colors relative z-10"
+            >
+              <Phone className="h-4 w-4" /> Call {station.mechanic.phone}
+            </a>
+          </div>
+        )}
 
         {/* Booking section */}
         {isMyStation ? (

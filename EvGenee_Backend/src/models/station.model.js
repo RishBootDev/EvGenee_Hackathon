@@ -102,6 +102,12 @@ const stationSchema = new mongoose.Schema({
     type: [String],
     required: true,
   },
+  mechanic: {
+    name: { type: String, default: "Station Auto Care" },
+    phone: { type: String, default: "+91-9000000000" },
+    rating: { type: Number, default: 4.5 },
+    speciality: { type: String, default: "General EV Repairs" }
+  },
   reviews: [
     {
       userId: { type: String, required: true },

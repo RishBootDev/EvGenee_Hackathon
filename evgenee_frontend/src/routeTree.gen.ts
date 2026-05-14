@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SosRouteImport } from './routes/sos'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as BookingsRouteImport } from './routes/bookings'
@@ -21,6 +22,11 @@ import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
 import { Route as OwnerStationsStationIdRouteImport } from './routes/owner.stations.$stationId'
 
+const SosRoute = SosRouteImport.update({
+  id: '/sos',
+  path: '/sos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/bookings': typeof BookingsRoute
   '/owner': typeof OwnerRouteWithChildren
   '/profile': typeof ProfileRoute
+  '/sos': typeof SosRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bookings': typeof BookingsRoute
   '/profile': typeof ProfileRoute
+  '/sos': typeof SosRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/bookings': typeof BookingsRoute
   '/owner': typeof OwnerRouteWithChildren
   '/profile': typeof ProfileRoute
+  '/sos': typeof SosRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/bookings'
     | '/owner'
     | '/profile'
+    | '/sos'
     | '/auth/forgot-password'
     | '/auth/login'
     | '/auth/register'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/'
     | '/bookings'
     | '/profile'
+    | '/sos'
     | '/auth/forgot-password'
     | '/auth/login'
     | '/auth/register'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/bookings'
     | '/owner'
     | '/profile'
+    | '/sos'
     | '/auth/forgot-password'
     | '/auth/login'
     | '/auth/register'
@@ -162,6 +174,7 @@ export interface RootRouteChildren {
   BookingsRoute: typeof BookingsRoute
   OwnerRoute: typeof OwnerRouteWithChildren
   ProfileRoute: typeof ProfileRoute
+  SosRoute: typeof SosRoute
   AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
@@ -170,6 +183,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sos': {
+      id: '/sos'
+      path: '/sos'
+      fullPath: '/sos'
+      preLoaderRoute: typeof SosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -269,6 +289,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookingsRoute: BookingsRoute,
   OwnerRoute: OwnerRouteWithChildren,
   ProfileRoute: ProfileRoute,
+  SosRoute: SosRoute,
   AuthForgotPasswordRoute: AuthForgotPasswordRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,

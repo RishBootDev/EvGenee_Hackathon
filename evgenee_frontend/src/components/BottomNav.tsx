@@ -21,7 +21,6 @@ export function BottomNav() {
     { to: "/profile", label: "Profile", icon: User },
   ];
 
-  // Total columns = nav links
   const totalCols = navItems.length;
 
   return (
@@ -35,6 +34,7 @@ export function BottomNav() {
       >
         {navItems.map(({ to, label, icon: Icon }) => {
           const active = loc.pathname === to || (to !== "/" && loc.pathname.startsWith(to));
+
           return (
             <Link
               key={to}
@@ -52,7 +52,7 @@ export function BottomNav() {
               >
                 <Icon className="h-5 w-5" />
               </div>
-              <span>{label}</span>
+              <span className="text-[10px]">{label}</span>
             </Link>
           );
         })}

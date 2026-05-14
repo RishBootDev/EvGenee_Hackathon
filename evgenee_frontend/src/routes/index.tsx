@@ -11,7 +11,7 @@ import { getApiError } from "@/lib/utils";
 import { toast } from "sonner";
 import { LandingPage } from "@/components/LandingPage";
 import { Drawer } from "vaul";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 
 /** Returns distance in meters between two [lat, lng] pairs using Haversine */
 function distanceMeters(a: [number, number], b: [number, number]): number {
@@ -687,6 +687,41 @@ function HomePage() {
           <LocateFixed size={20} color="#22c55e" />
         )}
       </button>
+
+      {/* ── FAB: SOS ── */}
+      {!isOwner && (
+        <Link
+          to="/sos"
+          aria-label="Emergency SOS"
+          style={{
+            position: "fixed",
+            right: 16,
+            bottom: `calc(${fabBottom} + 64px)`,
+            zIndex: 600,
+            width: 56,
+            height: 56,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+            boxShadow: "0 0 24px rgba(239,68,68,0.6), 0 4px 16px rgba(239,68,68,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            textDecoration: "none",
+            pointerEvents: "auto",
+            animation: "sos-pulse 2.5s ease-in-out infinite",
+          }}
+        >
+          <span style={{ color: "white", fontWeight: 900, fontSize: 16 }}>SOS</span>
+        </Link>
+      )}
+
+      <style>{`
+        @keyframes sos-pulse {
+          0%, 100% { box-shadow: 0 0 24px rgba(239,68,68,0.6), 0 4px 16px rgba(239,68,68,0.4); }
+          50% { box-shadow: 0 0 40px rgba(239,68,68,0.9), 0 4px 24px rgba(239,68,68,0.6); }
+        }
+      `}</style>
 
       {/* ── MOBILE BOTTOM DRAWER ── */}
       <div className="md:hidden">

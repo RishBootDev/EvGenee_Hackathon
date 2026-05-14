@@ -142,7 +142,8 @@ function OwnerPage() {
         pricing: editConnectors.map((c) => ({
           connectorType: c.type,
           priceperKWh: Number(c.price),
-          currency: "INR",
+          currency: "INR" as "INR" | "USD" | "EUR",
+          portCount: 1,
         })),
         openingHours: editForm.openingHours,
         contactInfo: { phoneNumber: editForm.phone, email: editForm.email },

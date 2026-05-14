@@ -8,6 +8,7 @@ const bookingRoutes = require('./routes/booking.routes');
 const userRoutes = require('./routes/user.routes');
 const paymentRoutes = require('./routes/payment.route');
 const aiRoutes = require('./routes/ai.routes');
+const roadsideRoutes = require('./routes/roadside.routes');
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/api/v1/stations', stationRoutes);
 app.use('/api/v1/bookings', bookingRoutes);
 app.use('/api/v1/payment', paymentRoutes);
 app.use('/api/v1/ai', aiRoutes);
+app.use('/api/v1/roadside', roadsideRoutes);
 
 
 app.use((req, res) => {
